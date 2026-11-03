@@ -1,0 +1,10 @@
+{
+  "192.0.2.10": "Central bridge / Spoolman / PlateLink",
+  "192.0.2.11": "SE01",
+  "192.0.2.12": "SE02",
+  "192.0.2.13": "MA01",
+  "192.0.2.14": "PrintHost",
+  "192.0.2.15": "Optional laboratory service",
+  "192.0.2.16": "HT09",
+  "192.0.2.17": "Duet LAN (optional cleanup file metadata)"
+}

@@ -1,0 +1,35 @@
+/* Lab bed controls follow the same live system-theme tokens as printer cards. */
+.lab-plate-row{margin-top:13px;padding-top:13px;border-top:1px solid var(--p-line,#dde6e2)}
+.lab-plate-row .plx-bed,body>.plx-dialog{--plx-ink:var(--p-ink,#1a2d2a);--plx-muted:var(--p-muted,#687c77);--plx-line:var(--p-line,#dde6e2);--plx-accent:var(--p-accent,#187b62);font-family:inherit}
+.lab-plate-row .plx-bed{padding:8px 0;border-color:transparent;border-radius:8px;background:transparent;color:var(--plx-ink);gap:10px;box-shadow:none}
+.lab-plate-row .plx-bed:hover{background:var(--p-panel,#fff);border-color:var(--p-line,#dde6e2);box-shadow:none}
+.lab-plate-row .plx-photo{width:42px;height:42px;background:transparent;border-radius:6px}
+.lab-plate-row .plx-photo img,body>.plx-dialog .plx-option-photo img{mix-blend-mode:normal}
+.lab-plate-row .plx-bed-copy strong{font-size:12px;color:var(--plx-ink)}
+.lab-plate-row .plx-eyebrow{font-size:9px!important;letter-spacing:1px;color:var(--plx-muted)}
+.lab-plate-row .plx-bed-meta{font-size:10px;color:var(--plx-muted)}
+.lab-plate-row .plx-change{font-size:10px;color:var(--plx-accent)}
+.lab-plate-row .plx-bed:focus-visible,body>.plx-dialog :focus-visible{outline:2px solid var(--plx-accent);outline-offset:3px}
+#idex-card .lab-plate-row{margin:0;padding:10px 16px;border-top:1px solid #70303c}
+#idex-card .plx-bed{--plx-ink:#f7e9e8;--plx-muted:#d3a9ad;--plx-line:#70303c;--plx-accent:#ffc9d2;background:transparent}
+#idex-card .plx-bed:hover{background:#ffffff09;border-color:#70303c}
+#idex-card .plx-photo{background:transparent}
+body>.plx-dialog{color-scheme:inherit;background:var(--p-subtle,#f6f8f8);border-color:var(--plx-line);color:var(--plx-ink)}
+body>.plx-dialog .plx-dialog-head,body>.plx-dialog .plx-dialog-foot{background:var(--p-panel,#fff);border-color:var(--plx-line)}
+body>.plx-dialog .plx-close{background:var(--p-subtle,#f6f8f8);color:var(--plx-muted)}
+body>.plx-dialog .plx-search-label{color:var(--plx-muted)}
+body>.plx-dialog .plx-search,body>.plx-dialog .plx-option{background:var(--p-panel,#fff);border-color:var(--plx-line);color:var(--plx-ink)}
+body>.plx-dialog .plx-search::placeholder{color:var(--plx-muted)}
+body>.plx-dialog .plx-option:hover{border-color:var(--plx-accent)}
+body>.plx-dialog .plx-option[aria-pressed=true]{background:color-mix(in srgb,var(--plx-accent) 12%,var(--p-panel,#fff));border-color:var(--plx-accent)}
+body>.plx-dialog .plx-option-photo{background:transparent}
+body>.plx-dialog .plx-feedback{color:var(--plx-accent)}
+body>.plx-dialog .plx-feedback.is-error,.lab-plate-row .plx-error{color:var(--bad,#bf4956)}
+body>.plx-dialog .plx-save{background:var(--plx-accent);border-color:var(--plx-accent);color:var(--p-panel,#fff)}
+body>.plx-dialog .plx-remove{background:var(--p-panel,#fff);border-color:var(--plx-line);color:var(--plx-muted)}
+body>.plx-dialog .plx-transfer{background:var(--p-panel,#fff);border-color:var(--warn,#bc8f32);color:var(--plx-ink)}
+body>.plx-dialog .plx-transfer input{accent-color:var(--plx-accent)}
+@media(max-width:520px){.lab-plate-row .plx-photo{width:38px;height:38px}.lab-plate-row .plx-change{font-size:10px}}
+/* Preserve the complete native Orca plate silhouette, including its tabs. */
+.lab-plate-row .plx-photo,body>.plx-dialog .plx-option-photo{border-radius:0;overflow:visible;background:transparent}
+.lab-plate-row .plx-photo img,body>.plx-dialog .plx-option-photo img{display:block;box-sizing:border-box;object-fit:contain;padding:2px;border:0;border-radius:0;clip-path:none;mask:none;mix-blend-mode:normal}

@@ -1,0 +1,34 @@
+/* Light is the fallback. Media queries also react to live OS theme changes. */
+:root{color-scheme:light}
+@media(prefers-color-scheme:dark){
+  :root{color-scheme:dark;--panel:#1b222c;--ink:#e5ebf3;--muted:#a7b4c6;--line:#354153;--ok:#73d8bc;--warn:#ffc77d;--bad:#ff9b9b;--gcode-bg:#171f29}
+  body{background:linear-gradient(180deg,#10161e,#151d27)}
+  .chip,.spool-item,.modal-card,.modal-close,.picker-search,.picker-row,.queue,.controls,.temp-row,.ups-item,.gcode-card,.spoolman-service-item,.ph-card{background:#1b2531;color:var(--ink);border-color:var(--line)}
+  .live,.temps,.ups-card,.cam-material,.modal-head,.print-host-head,.spoolman-service{background:#18212c;border-color:var(--line)}
+  .live-thumb,.gcode-thumb-wrap,.ph-preview-wrap{background:#263242}
+  .spool-title,.live-title,.queue-title,.controls-title,.temps-title,.ups-title,.gcode h3,.print-host-title,.spoolman-service-title,.modal-title,.picker-name,.live-file,.path,.gcode-name,.ph-name,.ups-item .v,.spoolman-service-item .v,.queue-list li{color:#e0e8f2}
+  .mainsail-hint,.live-empty,.queue-empty,.temps-empty,.temp-state,.temps-head,.ups-item .k,.ups-status,.spool-change-hint,.modal-help,.modal-status,.picker-meta,.control-status,.gcode-status,.print-host-meta,.ph-sub,.ph-status,.spoolman-service-item .k{color:#a7b7ca}
+  .spool-text small{color:#a7b7ca!important}
+  .ups-title span{color:#a7c7ff!important}
+  #intamsys-card .controls p{color:#a7b7ca!important}
+  .queue-count,.resting,.spoolman-service-badge,.ph-health-chip{background:#283547;color:#d1dfef;border-color:#40516a}
+  .share-btn,.modal-btn{background:#243b64;color:#c3d9ff;border-color:#42618e}
+  .share-btn:hover,.modal-btn:hover{background:#304d7e}
+  .control-btn,.ph-btn,.modal-btn.primary,.printing,.ph-health-chip.ok,.spoolman-service-badge.ok{background:#183c36;color:#8ee5ce;border-color:#35685c}
+  .control-btn:hover,.ph-btn:hover{background:#225045}
+  .control-btn.primary{background:#147c68;color:#fff;border-color:#2aa68c}
+  .control-btn.warn,.modal-btn.warn,.maintenance,.ph-health-chip.warn{background:#45331e;color:#ffd395;border-color:#7c5931}
+  .control-btn.danger,.modal-btn.danger,.offline,.ph-health-chip.error,.spoolman-service-badge.error{background:#48252d;color:#ffb4bd;border-color:#85414e}
+  .loading{background:#243b64;color:#bfd4ff;border-color:#42618e}
+  .modal-backdrop{background:#03070cb8}
+  .modal-head{border-bottom-color:var(--line)}
+  .picker-row:hover{background:#28364a;border-color:#657d9b}
+  .picker-search{color:var(--ink)}
+  .picker-search::placeholder{color:#9cacc0}
+  .modal-status.ok,.control-status.ok,.ph-status.ok{color:#8ee5ce}
+  .modal-status.error,.control-status.error,.ph-status.error{color:#ffb4bd}
+  .share-modal-link{background:#223653;border-color:#42618e}.share-modal-link input{color:#c3d9ff}
+  .ph-preview{background:#fff} /* Printed label previews must remain paper-white. */
+  .top>a{background:#243b64!important;color:#c3d9ff!important;border-color:#42618e!important}
+  :focus-visible{outline:2px solid #8abaff;outline-offset:3px}
+}

@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Estadísticas de materiales</title>
+  <style>
+    :root {
+      --bg-app: #eef2f6;
+      --bg-card: #ffffff;
+      --text-heading: #262e3d;
+      --text-body: #4a5568;
+      --text-muted: #718096;
+      --border-light: #e2e8f0;
+      --primary-teal: #14806c;
+      --secondary-blue-bg: #e6edfd;
+      --secondary-blue-text: #2c5bc4;
+      --success-bg: #e3f5eb;
+      --success-text: #1d825c;
+      --warn-bg: #fef0db;
+      --warn-text: #bc7523;
+      --danger-bg: #fae4e7;
+      --danger-text: #ba324b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      background: var(--bg-app);
+      color: var(--text-body);
+    }
+    .wrap { max-width: 1250px; margin: 0 auto; padding: 22px; }
+    .head {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .head h1 { margin: 0 0 6px; color: var(--text-heading); font-size: 34px; }
+    .head p { margin: 0; color: var(--text-muted); }
+    .actions { display: flex; gap: 8px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 10px 14px;
+      border: 1px solid var(--border-light);
+      background: #fff;
+      color: #334155;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      text-decoration: none;
+    }
+    .btn.primary {
+      background: var(--secondary-blue-bg);
+      border-color: #cbdcff;
+      color: var(--secondary-blue-text);
+    }
+
+    .kpis {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 10px;
+    }
+    .kpi {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 14px;
+      padding: 12px;
+    }
+    .kpi strong { display:block; font-size: 34px; line-height: 1; color: var(--text-heading); font-variant-numeric: tabular-nums; }
+    .kpi span { display:block; margin-top: 6px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 800; letter-spacing:.04em; }
+
+    .panel {
+      margin-top: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .panel h2 {
+      margin: 0;
+      padding: 12px 14px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: #4f5f73;
+      border-bottom: 1px solid #eef2f7;
+      background: #fbfcff;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid #eef2f7; font-size: 14px; }
+    th { text-align: left; color: #5d6a7c; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    tr:last-child td { border-bottom: none; }
+    .material-cell { display: flex; align-items: center; gap: 10px; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(0,0,0,.12); flex-shrink: 0; }
+    .num { font-variant-numeric: tabular-nums; color: #1f2937; font-weight: 700; }
+
+    .bar {
+      position: relative;
+      height: 10px;
+      border-radius: 999px;
+      background: #edf2f7;
+      overflow: hidden;
+      min-width: 180px;
+    }
+    .bar-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #7ccab8 0%, #1d825c 100%);
+    }
+
+    .badge { font-size: 11px; font-weight: 800; padding: 5px 10px; border-radius: 999px; border: 1px solid transparent; }
+    .eff-high { background: var(--success-bg); color: var(--success-text); border-color: #bce3d0; }
+    .eff-mid { background: var(--warn-bg); color: var(--warn-text); border-color: #f3d4a4; }
+    .eff-low { background: var(--danger-bg); color: var(--danger-text); border-color: #f0c2c8; }
+
+    .empty { padding: 20px; color: #607086; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .mini-list { padding: 10px 14px 14px; display: grid; gap: 8px; }
+    .mini-row {
+      display: grid;
+      grid-template-columns: 26px 1fr auto auto;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid #edf2f7;
+      border-radius: 10px;
+      background: #fff;
+      padding: 8px 10px;
+    }
+    .swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid rgba(0,0,0,.12);
+      background: #94a3b8;
+    }
+    .mini-name { color: #1f2937; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mini-meta { color: #64748b; font-size: 12px; font-weight: 700; }
+
+    @media (max-width: 980px) {
+      .kpis { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .stats-grid { grid-template-columns: 1fr; }
+      table, thead, tbody, th, td, tr { display: block; }
+      thead { display: none; }
+      tr { border-bottom: 1px solid #eef2f7; }
+      td { border-bottom: none; padding-top: 8px; padding-bottom: 8px; }
+      td::before { content: attr(data-label); display: block; font-size: 10px; text-transform: uppercase; color: #7b8798; font-weight: 800; margin-bottom: 3px; }
+      .bar { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="head">
+      <div>
+        <h1>Materials</h1>
+        <p>Estadística comprimida y eficiencia por material para decisiones de reposición.</p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="./index.html">Volver</a>
+        <a class="btn primary" href="http://192.0.2.10:7912/spool" target="_blank" rel="noopener">Abrir Spoolman</a>
+      </div>
+    </section>
+
+    <section class="kpis" id="kpis"></section>
+
+    <section class="panel">
+      <h2>Eficiencia por tipo de filamento</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Material</th>
+            <th>Disponible</th>
+            <th>Consumido</th>
+            <th>Bobinas</th>
+            <th>Eficiencia</th>
+            <th>Tendencia</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </section>
+
+    <section class="stats-grid">
+      <section class="panel">
+        <h2>Fabricantes</h2>
+        <div id="vendors" class="mini-list"></div>
+      </section>
+      <section class="panel">
+        <h2>Filamentos</h2>
+        <div id="filaments" class="mini-list"></div>
+      </section>
+    </section>
+  </div>
+
+  <script>
+    const SPOOLMAN_PROXY_HOSTS = ['192.0.2.11', '192.0.2.12', '192.0.2.13'];
+
+    async function fetchJson(url, options={}, timeout=12000) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeout);
+      try {
+        const res = await fetch(url, { ...options, signal: ctrl.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      } finally { clearTimeout(timer); }
+    }
+
+    async function fetchSpoolmanProxy(path, timeout=14000) {
+      let lastError = null;
+      for (const host of SPOOLMAN_PROXY_HOSTS) {
+        try {
+          return await fetchJson(`http://${host}/server/spoolman/proxy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ request_method: 'GET', path })
+          }, timeout);
+        } catch (e) { lastError = e; }
+      }
+      throw lastError || new Error('Spoolman proxy no disponible');
+    }
+
+    function normalizeHexColor(raw) {
+      if (!raw) return '#94a3b8';
+      const c = String(raw).trim().replace('#','');
+      if (/^[0-9a-fA-F]{6}$/.test(c)) return `#${c}`;
+      if (/^[0-9a-fA-F]{3}$/.test(c)) return `#${c[0]}${c[0]}${c[1]}${c[1]}${c[2]}${c[2]}`;
+      return '#94a3b8';
+    }
+
+    function fmtKg(g) { return `${(g/1000).toFixed(2)} kg`; }
+
+    function effBadge(pct) {
+      if (pct >= 70) return 'eff-high';
+      if (pct >= 35) return 'eff-mid';
+      return 'eff-low';
+    }
+
+    async function render() {
+      const kpis = document.getElementById('kpis');
+      const rows = document.getElementById('rows');
+      const vendors = document.getElementById('vendors');
+      const filaments = document.getElementById('filaments');
+      kpis.innerHTML = '<div class="kpi"><strong>...</strong><span>Cargando</span></div>';
+      rows.innerHTML = '<tr><td class="empty" colspan="6">Consultando Spoolman...</td></tr>';
+      vendors.innerHTML = '<div class="empty">Consultando fabricantes...</div>';
+      filaments.innerHTML = '<div class="empty">Consultando filamentos...</div>';
+
+      try {
+        const spoolsRaw = await fetchSpoolmanProxy('/v1/spool');
+        const spools = Array.isArray(spoolsRaw?.result) ? spoolsRaw.result : (Array.isArray(spoolsRaw) ? spoolsRaw : []);
+
+        // Disponibilidad: solo bobinas no archivadas con remanente.
+        const active = spools.filter(s => !s.archived && Number(s.remaining_weight || 0) > 0 && s.filament);
+        // Consumo/eficiencia: todas las bobinas no archivadas (aunque ya no tengan remanente).
+        const scope = spools.filter(s => !s.archived && s.filament);
+
+        const byMaterial = new Map();
+        const byVendor = new Map();
+        const byFilament = new Map();
+
+        for (const spool of scope) {
+          const f = spool.filament || {};
+          const material = f.material || 'Material';
+          const color = normalizeHexColor(f.color_hex);
+          const vendorName = (f.vendor && f.vendor.name) ? f.vendor.name : 'Sin fabricante';
+          const filamentName = f.name || `${material} sin nombre`;
+
+          const rem = Number(spool.remaining_weight || 0);
+          let used = Number(spool.used_weight || spool.consumed_weight || 0);
+          // Fallback: cuando Spoolman no trae used_weight, estimamos consumo por peso nominal.
+          if (!(used > 0)) {
+            const nominal = Number(f.weight || 0);
+            if (nominal > 0 && rem >= 0) used = Math.max(0, nominal - rem);
+          }
+
+          if (!byMaterial.has(material)) byMaterial.set(material, { material, color, spools: 0, remG: 0, usedG: 0 });
+          const row = byMaterial.get(material);
+          row.spools += 1;
+          row.remG += rem;
+          row.usedG += used;
+
+          if (!byVendor.has(vendorName)) byVendor.set(vendorName, { name: vendorName, spools: 0, remG: 0, usedG: 0 });
+          const v = byVendor.get(vendorName);
+          v.spools += 1;
+          v.remG += rem;
+          v.usedG += used;
+
+          const fk = `${filamentName}|${vendorName}|${material}|${color}`;
+          if (!byFilament.has(fk)) byFilament.set(fk, { name: filamentName, vendor: vendorName, material, color, spools: 0, remG: 0, usedG: 0 });
+          const fi = byFilament.get(fk);
+          fi.spools += 1;
+          fi.remG += rem;
+          fi.usedG += used;
+        }
+
+        const items = Array.from(byMaterial.values()).map(x => {
+          const total = x.remG + x.usedG;
+          const eff = total > 0 ? (x.usedG / total) * 100 : 0;
+          return { ...x, efficiency: eff };
+        }).sort((a,b) => b.remG - a.remG);
+
+        const totalRem = items.reduce((s, i) => s + i.remG, 0);
+        const avgEff = items.length ? items.reduce((s, i) => s + i.efficiency, 0) / items.length : 0;
+
+        const vendorItems = Array.from(byVendor.values()).map(v => {
+          const t = v.remG + v.usedG;
+          return { ...v, efficiency: t > 0 ? (v.usedG / t) * 100 : 0 };
+        }).sort((a,b) => b.remG - a.remG);
+
+        const filamentItems = Array.from(byFilament.values()).map(v => {
+          const t = v.remG + v.usedG;
+          return { ...v, efficiency: t > 0 ? (v.usedG / t) * 100 : 0 };
+        }).sort((a,b) => b.remG - a.remG);
+
+        kpis.innerHTML = [
+          `<div class="kpi"><strong>${items.length}</strong><span>Materiales activos</span></div>`,
+          `<div class="kpi"><strong>${scope.length}</strong><span>Bobinas no archivadas</span></div>`,
+          `<div class="kpi"><strong>${(totalRem/1000).toFixed(2)} kg</strong><span>Disponible total</span></div>`,
+          `<div class="kpi"><strong>${avgEff.toFixed(0)}%</strong><span>Eficiencia promedio</span></div>`
+        ].join('');
+
+        if (!items.length) {
+          rows.innerHTML = '<tr><td class="empty" colspan="6">No hay materiales activos con remanente.</td></tr>';
+          return;
+        }
+
+        rows.innerHTML = items.map(item => {
+          const pct = item.efficiency.toFixed(0);
+          return `<tr>
+            <td data-label="Material"><div class="material-cell"><span class="dot" style="background:${item.color}"></span><strong>${item.material}</strong></div></td>
+            <td data-label="Disponible" class="num">${fmtKg(item.remG)}</td>
+            <td data-label="Consumido" class="num">${fmtKg(item.usedG)}</td>
+            <td data-label="Bobinas" class="num">${item.spools}</td>
+            <td data-label="Eficiencia"><span class="badge ${effBadge(item.efficiency)}">${pct}%</span></td>
+            <td data-label="Tendencia"><div class="bar"><span class="bar-fill" style="width:${pct}%"></span></div></td>
+          </tr>`;
+        }).join('');
+
+        vendors.innerHTML = vendorItems.slice(0, 12).map(v => {
+          return `<div class="mini-row"><span class="swatch" style="background:#cbd5e1"></span><span class="mini-name">${v.name}</span><span class="mini-meta">${(v.remG/1000).toFixed(2)} kg</span><span class="badge ${effBadge(v.efficiency)}">${v.efficiency.toFixed(0)}%</span></div>`;
+        }).join('') || '<div class="empty">Sin datos de fabricantes.</div>';
+
+        filaments.innerHTML = filamentItems.slice(0, 16).map(f => {
+          return `<div class="mini-row"><span class="swatch" style="background:${f.color}"></span><span class="mini-name">${f.name} <span style="color:#94a3b8;font-weight:600">· ${f.material}</span></span><span class="mini-meta">${f.spools} bob.</span><span class="mini-meta">${(f.remG/1000).toFixed(2)} kg</span></div>`;
+        }).join('') || '<div class="empty">Sin datos de filamentos.</div>';
+      } catch (e) {
+        kpis.innerHTML = '<div class="kpi"><strong>0</strong><span>Sin datos</span></div>';
+        rows.innerHTML = '<tr><td class="empty" colspan="6">No se pudo consultar Spoolman por el proxy de Moonraker.</td></tr>';
+        vendors.innerHTML = '<div class="empty">No se pudo consultar fabricantes.</div>';
+        filaments.innerHTML = '<div class="empty">No se pudo consultar filamentos.</div>';
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>

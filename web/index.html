@@ -1,0 +1,2152 @@
+<!doctype html>
+<html lang="es" data-plate-api="/api/platelink">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Laboratorio de prototipado</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <style>
+    :root { --panel:#fff; --ink:#17212b; --muted:#5b6876; --line:#d9dee5; --ok:#127a65; --warn:#b26a00; --bad:#b42318; --gcode-bg:#f6f8fb; }
+    * { box-sizing:border-box }
+    body { margin:0; background:linear-gradient(180deg,#edf2f8 0%,#f7f9fc 100%); color:var(--ink); font-family:"Segoe UI",Tahoma,sans-serif }
+    a { color:inherit; text-decoration:none }
+    .wrap { max-width:1300px; margin:0 auto; padding:22px }
+    .top { background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:20px; margin-bottom:18px; box-shadow:0 16px 40px rgba(23,33,43,.08) }
+    .top h1 { margin:0 0 8px; font-size:34px; line-height:1.05 }
+    .top p { margin:0; color:var(--muted); line-height:1.55 }
+    .meta { margin-top:10px; display:flex; gap:10px; flex-wrap:wrap }
+    .chip { font-size:12px; font-weight:700; border-radius:999px; padding:6px 10px; border:1px solid var(--line); background:#fff }
+
+    .spool-banner { margin-top:12px; border-top:1px solid var(--line); padding-top:12px }
+    .spool-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#415062; margin-bottom:8px }
+    .spool-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px }
+    .spool-item { font-size:12px; border:1px solid var(--line); background:#fff; border-radius:10px; padding:8px 10px; color:#2d3a48; min-height:54px; display:grid; grid-template-columns:38px 1fr; gap:8px; align-items:center }
+    .spool-item.selectable { cursor:pointer; transition:transform .12s ease, box-shadow .12s ease }
+    .spool-item.selectable:hover { transform:translateY(-1px); box-shadow:0 8px 20px rgba(23,33,43,.08) }
+    .spool-thumb { width:38px; height:38px; border-radius:10px; border:1px solid rgba(0,0,0,.12); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; background:#d0d7e2; color:#1a2533; text-transform:uppercase }
+    .spool-text { line-height:1.3 }
+    .cam-material{padding:14px;border-top:1px solid var(--line);background:#f5f8fc}.cam-material .spool-item{grid-template-columns:64px 1fr;min-height:82px}.cam-material .spool-thumb{width:60px;height:60px;border:0;background:transparent!important}.spool-art{width:60px;height:60px}.spool-change-hint{font-size:10px;color:#60758a;margin-top:7px}
+
+    .modal-backdrop { position:fixed; inset:0; background:rgba(15,23,42,.42); display:flex; align-items:center; justify-content:center; z-index:1200; padding:14px }
+    .modal-backdrop.hidden { display:none }
+    .modal-card { width:min(520px, calc(100vw - 28px)); background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden; box-shadow:0 20px 56px rgba(23,33,43,.26) }
+    .modal-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; border-bottom:1px solid #e8edf3; background:#f8fbff }
+    .modal-title { margin:0; font-size:16px; color:#1d2a3a }
+    .modal-close { border:1px solid var(--line); background:#fff; border-radius:8px; font-size:16px; width:34px; height:34px; cursor:pointer }
+    .modal-body { padding:14px }
+    .modal-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px }
+    .modal-btn { border:1px solid #cbdcff; background:#e6edfd; color:#2c5bc4; border-radius:999px; padding:9px 13px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; cursor:pointer }
+    .modal-btn.primary { border-color:#b8d9d1; background:#e9f7f3; color:#106b59 }
+    .modal-btn.warn { border-color:#ffd8a8; background:#fff4e5; color:#b26a00 }
+    .modal-btn.danger { border-color:#f7c8c8; background:#fdecec; color:#b42318 }
+    .modal-help { margin:0; color:#607086; font-size:12px; line-height:1.45 }
+    .modal-status { margin-top:10px; min-height:18px; font-size:12px; color:#607086 }
+    .modal-status.ok { color:#127a65 }
+    .modal-status.error { color:#b42318 }
+    .picker-search { width:100%; border:1px solid #d7dee9; background:#fff; border-radius:10px; padding:10px 12px; font-size:14px; margin-bottom:10px }
+    .picker-list { max-height:300px; overflow:auto; display:grid; gap:8px }
+    .picker-row { border:1px solid #e4ebf3; background:#fff; border-radius:10px; padding:9px 10px; display:grid; grid-template-columns:36px 1fr auto; gap:10px; align-items:center; cursor:pointer }
+    .picker-row:hover { background:#f8fbff; border-color:#c7d6eb }
+    .picker-chip { width:28px; height:28px; border-radius:7px; border:1px solid rgba(0,0,0,.12); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900 }
+    .picker-name { font-size:13px; color:#1f2c3a; font-weight:700 }
+    .picker-meta { font-size:11px; color:#6a7b90; margin-top:2px }
+    .scan-video { width:100%; max-height:260px; border-radius:12px; border:1px solid #d8e0ea; background:#0f141b }
+
+    .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px }
+    .cam { background:var(--panel); border:1px solid var(--line); border-radius:18px; overflow:hidden; box-shadow:0 16px 40px rgba(23,33,43,.08); cursor:pointer; transition:transform .12s ease, box-shadow .12s ease }
+    .cam:hover { transform:translateY(-2px); box-shadow:0 20px 46px rgba(23,33,43,.13) }
+    .cam-head { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--line) }
+    .cam-head-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end }
+    .share-btn { border:1px solid #cbdcff; background:#e6edfd; color:#2c5bc4; border-radius:999px; padding:7px 10px; font-size:10px; font-weight:800; letter-spacing:.03em; text-transform:uppercase; cursor:pointer }
+    .share-btn:hover { background:#dce7ff }
+    .share-modal-link { display:flex; gap:8px; align-items:center; border:1px solid #cbdcff; background:#eef4ff; border-radius:10px; padding:10px; margin-top:10px }
+    .share-modal-link input { flex:1; min-width:0; border:0; background:transparent; color:#244a9a; font-size:12px; font-weight:700; outline:0 }
+    .cam-title { margin:0; font-size:20px; line-height:1 }
+    .badge { border-radius:999px; padding:5px 10px; font-size:12px; font-weight:800; text-transform:uppercase; border:1px solid transparent; white-space:nowrap }
+    .loading { color:#0b5fff; background:#ecf2ff; border-color:#cbdcff }
+    .printing { color:#127a65; background:#e9f7f3; border-color:#bfe8dd }
+    .resting { color:#415062; background:#eef2f7; border-color:#d3dde8 }
+    .offline { color:var(--bad); background:#fdecec; border-color:#f7c8c8 }
+    .maintenance { color:var(--warn); background:#fff4e5; border-color:#ffd8a8 }
+
+    .frame { width:100%; aspect-ratio:16/9; background:#0f141b; display:flex; align-items:center; justify-content:center }
+    .feed { width:100%; height:100%; object-fit:cover; display:block; background:#0f141b }
+    .placeholder { color:#d5dde7; text-align:center; padding:12px; line-height:1.45; font-size:14px }
+
+    .cam-meta { border-top:1px solid var(--line); padding:12px 14px; font-size:13px; color:var(--muted); display:grid; gap:4px }
+    .path { color:#2d3a48; font-family:Consolas,"Courier New",monospace; font-size:12px; word-break:break-all }
+    .mainsail-hint { color:#4f6073; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.03em }
+
+    .live { border-top:1px solid var(--line); padding:12px 14px; background:#fbfcfe }
+    .live-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#415062; margin-bottom:8px }
+    .live-empty { font-size:12px; color:#5f6d7c }
+    .live-job { display:grid; grid-template-columns:64px 1fr; gap:8px; align-items:center }
+    .live-thumb { width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--line); background:#eef2f8 }
+    .live-file { font-size:12px; color:#1e2a38; word-break:break-word; line-height:1.35 }
+    .queue { border-top:1px solid var(--line); padding:12px 14px; background:#fff }
+    .queue-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#415062; margin-bottom:8px }
+    .queue-empty { font-size:12px; color:#5f6d7c }
+    .queue-count { display:inline-flex; align-items:center; justify-content:center; min-width:26px; padding:3px 8px; border-radius:999px; background:#eef2f7; border:1px solid var(--line); font-size:11px; font-weight:800; color:#415062; margin-left:8px }
+    .queue-list { margin:0; padding-left:18px; display:grid; gap:6px }
+    .queue-list li { font-size:12px; color:#1e2a38; word-break:break-word; line-height:1.35 }
+
+    .controls { border-top:1px solid var(--line); padding:12px 14px; background:#fdfefe }
+    .controls-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#415062; margin-bottom:10px }
+    .control-groups { display:grid; gap:10px }
+    .control-row { display:flex; gap:8px; flex-wrap:wrap }
+    .control-btn { border:1px solid #b8d9d1; background:#e9f7f3; color:#106b59; border-radius:999px; padding:8px 12px; font-size:11px; font-weight:800; letter-spacing:.02em; text-transform:uppercase; cursor:pointer; transition:background .12s ease, transform .12s ease, border-color .12s ease }
+    .control-btn:hover { background:#dff3ed; transform:translateY(-1px) }
+    .control-btn:disabled { opacity:.55; cursor:wait; transform:none }
+    .control-btn.axis { min-width:52px; justify-content:center; display:inline-flex }
+    .control-btn.primary { background:#127a65; border-color:#127a65; color:#fff }
+    .control-btn.warn { background:#fff4e5; border-color:#ffd8a8; color:#b26a00 }
+    .control-btn.danger { background:#fdecec; border-color:#f7c8c8; color:#b42318 }
+    .control-status { margin-top:10px; font-size:12px; color:#5f6d7c; min-height:18px }
+    .control-status.ok { color:#127a65 }
+    .control-status.error { color:#b42318 }
+
+    .temps { border-top:1px solid var(--line); padding:12px 14px; background:#fbfcfe }
+    .temps-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#415062; margin-bottom:10px }
+    .temps-table { display:grid; gap:8px }
+    .temps-head, .temp-row { display:grid; grid-template-columns:minmax(0,1.3fr) 62px 72px 72px; gap:8px; align-items:center }
+    .temps-head { font-size:10px; font-weight:800; text-transform:uppercase; color:#6a7988 }
+    .temp-row { font-size:12px; color:#223143; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:#fff }
+    .temp-name { font-weight:700 }
+    .temp-state { text-transform:lowercase; color:#5f6d7c }
+    .temp-value, .temp-target { font-variant-numeric:tabular-nums; text-align:right }
+    .temps-empty { font-size:12px; color:#5f6d7c }
+
+    .ups-card { border-top:1px solid var(--line); background:#fbfcfe; padding:12px 14px }
+    .ups-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#415062; margin-bottom:10px }
+    .ups-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px }
+    .ups-item { border:1px solid var(--line); border-radius:10px; background:#fff; padding:8px 9px }
+    .ups-item .k { font-size:10px; color:#6a7988; text-transform:uppercase; letter-spacing:.04em; font-weight:800 }
+    .ups-item .v { margin-top:3px; font-size:12px; font-weight:800; color:#243140; font-variant-numeric:tabular-nums }
+    .ups-status { margin-top:8px; font-size:11px; color:#607086; line-height:1.4 }
+
+
+    .gcode { border-top:1px solid var(--line); background:var(--gcode-bg); padding:12px 14px }
+    .gcode h3 { margin:0 0 10px; font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:#415062 }
+    .gcode-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px }
+    .gcode-card { background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; display:grid; grid-template-rows:auto 1fr }
+    .gcode-card.clickable { cursor:pointer; transition:transform .12s ease, box-shadow .12s ease }
+    .gcode-card.clickable:hover { transform:translateY(-1px); box-shadow:0 8px 20px rgba(23,33,43,.08) }
+    .gcode-thumb-wrap { aspect-ratio:1/1; background:#eef2f8; display:flex; align-items:center; justify-content:center }
+    .gcode-thumb { width:100%; height:100%; object-fit:cover; display:block }
+    .gcode-info { padding:8px }
+    .gcode-name { font-size:11px; line-height:1.35; color:#243140; word-break:break-word }
+    .gcode-status { margin-top:4px; font-size:10px; color:#627184 }
+
+    
+      .spoolman-service { margin-top:12px; border:1px solid var(--line); border-radius:12px; background:#fcfdff; padding:10px 12px }
+      .spoolman-service-head { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap }
+      .spoolman-service-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#415062 }
+      .spoolman-service-badge { border-radius:999px; padding:5px 9px; font-size:11px; font-weight:800; border:1px solid var(--line); background:#eef2f7; color:#415062; white-space:nowrap }
+      .spoolman-service-badge.ok { color:#127a65; background:#e9f7f3; border-color:#bfe8dd }
+      .spoolman-service-badge.error { color:#b42318; background:#fdecec; border-color:#f7c8c8 }
+      .spoolman-service-metrics { margin-top:8px; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px }
+      .spoolman-service-item { border:1px solid var(--line); border-radius:9px; background:#fff; padding:7px 8px }
+      .spoolman-service-item .k { font-size:10px; color:#6a7988; text-transform:uppercase; letter-spacing:.04em; font-weight:800 }
+      .spoolman-service-item .v { margin-top:3px; font-size:12px; font-weight:800; color:#243140 }
+
+      .print-host { margin-top:18px; background:var(--panel); border:1px solid var(--line); border-radius:18px; overflow:hidden; box-shadow:0 16px 40px rgba(23,33,43,.08) }
+    .print-host-head { padding:14px 16px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:10px; background:#fcfdff; flex-wrap:wrap }
+    .print-host-title { margin:0; font-size:16px; font-weight:900; text-transform:uppercase; letter-spacing:.03em; color:#233142 }
+    .print-host-meta-wrap { display:grid; gap:8px; justify-items:end }
+    .print-host-meta { font-size:12px; color:#5f6d7c }
+    .ph-health { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end }
+    .ph-health-chip { border-radius:999px; padding:5px 9px; font-size:11px; font-weight:800; border:1px solid var(--line); background:#eef2f7; color:#415062; white-space:nowrap }
+    .ph-health-chip.ok { color:#127a65; background:#e9f7f3; border-color:#bfe8dd }
+    .ph-health-chip.error { color:#b42318; background:#fdecec; border-color:#f7c8c8 }
+    .ph-health-chip.warn { color:#b26a00; background:#fff4e5; border-color:#ffd8a8 }
+    .print-host-grid { padding:14px 16px 16px; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px }
+    .ph-card { border:1px solid var(--line); border-radius:12px; background:#fff; overflow:hidden; cursor:pointer; display:grid; grid-template-rows:auto auto; transition:transform .12s ease, box-shadow .12s ease }
+    .ph-card:hover { transform:translateY(-1px); box-shadow:0 8px 20px rgba(23,33,43,.08) }
+    .ph-preview-wrap { aspect-ratio:3/1; background:#f2f5fa; display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--line); position:relative; overflow:hidden }
+    .ph-preview { width:100%; height:100%; object-fit:contain; display:block; background:#ffffff }
+    .ph-body { padding:10px }
+    .ph-name { font-size:11px; font-weight:800; color:#233142; line-height:1.25; word-break:break-word }
+    .ph-sub { margin-top:6px; font-size:11px; color:#607086 }
+    .ph-actions { margin-top:8px; display:flex; gap:8px; align-items:center; justify-content:space-between }
+    .ph-btn { border:1px solid #b8d9d1; background:#e9f7f3; color:#106b59; border-radius:999px; padding:7px 10px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; cursor:pointer }
+    .ph-status { font-size:10px; color:#607086; min-height:12px; text-align:right }
+    .ph-status.ok { color:#127a65 }
+    .ph-status.error { color:#b42318 }
+
+    .inventory { margin-top:18px; background:var(--panel); border:1px solid var(--line); border-radius:22px; overflow:hidden; box-shadow:0 18px 42px rgba(23,33,43,.1) }
+    .inventory-head { padding:18px 20px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; background:linear-gradient(135deg,#fbfdff 0%,#f1f6fb 100%) }
+    .inventory-head h2 { margin:0 0 6px; font-size:26px; line-height:1.05 }
+    .inventory-head p { margin:0; color:var(--muted); max-width:760px; line-height:1.5 }
+    .inventory-head-actions { display:flex; gap:8px; flex-wrap:wrap }
+    .inventory-link { display:inline-flex; align-items:center; justify-content:center; padding:10px 14px; border-radius:999px; border:1px solid var(--line); background:#fff; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.04em }
+    .inventory-link.secondary { background:#e6edfd; border-color:#cbdcff; color:#2c5bc4 }
+    .inventory-summary { padding:14px 20px; display:flex; gap:10px; flex-wrap:wrap; border-bottom:1px solid var(--line); background:#fcfdff }
+    .inventory-chip { border:1px solid var(--line); border-radius:999px; background:#fff; padding:7px 10px; font-size:12px; font-weight:700; color:#3f5062 }
+    .inventory-grid { padding:18px 20px 20px; display:block }
+    .inventory-compact { border:1px solid var(--line); border-radius:16px; background:#fff; padding:16px; display:grid; grid-template-columns:240px 1fr; gap:16px }
+    .inv-donut-wrap { display:flex; align-items:center; justify-content:center }
+    .inv-donut { width:190px; height:190px; border-radius:50%; position:relative; box-shadow:inset 0 0 0 1px rgba(0,0,0,.05) }
+    .inv-donut-hole { position:absolute; inset:24px; border-radius:50%; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; border:1px solid var(--line); color:#223143 }
+    .inv-donut-hole strong { font-size:31px; line-height:1; font-weight:900 }
+    .inv-donut-hole span { margin-top:6px; font-size:11px; color:#5f6d7c; font-weight:700; text-transform:uppercase; letter-spacing:.04em }
+    .inv-right { display:grid; gap:12px }
+    .inv-list { display:grid; gap:7px }
+    .inv-row { display:grid; grid-template-columns:20px 1fr auto auto; gap:10px; align-items:center; font-size:13px; border-bottom:1px dashed #e4eaf1; padding-bottom:6px }
+    .inv-dot { width:12px; height:12px; border-radius:50%; border:1px solid rgba(0,0,0,.08) }
+    .inv-name { color:#243140; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+    .inv-val { color:#2d3a48; font-variant-numeric:tabular-nums; font-weight:700 }
+    .inv-effi { color:#14806c; font-size:12px; font-weight:800 }
+    .inv-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px }
+    .inv-kpi { border:1px solid var(--line); border-radius:12px; background:#fbfcff; padding:9px 10px }
+    .inv-kpi strong { display:block; font-size:22px; color:#1c2735; line-height:1.05; font-variant-numeric:tabular-nums }
+    .inv-kpi span { display:block; margin-top:5px; color:#607086; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.04em }
+    .inventory-empty { padding:20px; color:#5d6b79; font-size:14px }
+
+    @media (max-width:1100px) {
+      .grid, .spool-grid, .print-host-grid { grid-template-columns:1fr }
+      .top h1 { font-size:30px }
+      .inventory-head h2 { font-size:22px }
+      .inventory-compact { grid-template-columns:1fr }
+      .inv-kpis { grid-template-columns:repeat(2,minmax(0,1fr)) }
+    }
+  </style>
+  <meta name="color-scheme" content="light dark">
+  <link rel="stylesheet" href="/device-theme.css?v=20261023">
+  <link rel="stylesheet" href="/laboratorio-layout.css?v=20261023">
+<link rel="stylesheet" href="/plate-chooser.css?v=20261101"><link rel="stylesheet" href="/platelink-cards.css?v=20261101-system3"></head>
+<body>
+  <div class="modal-backdrop hidden" id="share-modal" role="dialog" aria-modal="true" aria-labelledby="share-title"><div class="modal-card"><div class="modal-head"><h3 class="modal-title" id="share-title">Compartir impresión en curso</h3><button class="modal-close" type="button" id="share-close">×</button></div><div class="modal-body"><p class="modal-help">Enlace público, de solo lectura, válido durante 24 horas.</p><div class="share-modal-link"><input id="share-url" readonly><button class="modal-btn primary" id="share-copy" type="button">Copiar</button></div><div class="modal-status" id="share-status"></div></div></div></div>
+  <div class="wrap">
+    <section class="top">
+      <h1>Laboratorio de prototipado</h1>
+      <p>Monitoreo de impresoras por Tailscale. Estado actual: descansando o imprimiendo; si imprime, se muestra archivo activo y miniatura.</p>
+        <a href="./timeline.html" style="display:inline-flex;border:1px solid #c5d7f2;background:#eef4ff;color:#0b5fff;border-radius:999px;padding:7px 12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin:10px 0;">Timeline</a>
+      <div class="meta">
+        <span class="chip">URL: ./index.html</span>
+        <span class="chip">Fuente: Moonraker + Spoolman</span>
+        <span class="chip">Red: Tailscale</span>
+      </div>
+
+        
+        
+      </section>
+
+      <section class="grid" id="grid"></section>
+
+    <section class="print-host" id="print-host">
+      <div class="print-host-head">
+        <h2 class="print-host-title">Print Host</h2>
+        <div class="print-host-meta-wrap">
+          <div class="print-host-meta">Laboratorio de prototipado</div>
+          <div class="ph-health" id="ph-health">
+            <span class="ph-health-chip" id="ph-conn-chip">PrintHost: verificando...</span>
+            <span class="ph-health-chip" id="ph-printer-chip">Etiquetadora: verificando...</span>
+          </div>
+        </div>
+      </div>
+      <div class="print-host-grid" id="printhost-grid"></div>
+    </section>
+
+  </div>
+
+  <div class="modal-backdrop hidden" id="spool-action-modal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 class="modal-title" id="spool-action-title">Cambiar carrete</h3>
+        <button class="modal-close" type="button" data-close="spool-action-modal">x</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-help">Elige como quieres montar el carrete para esta impresora.</p>
+        <div class="modal-actions">
+          <button class="modal-btn primary" type="button" id="spool-action-scan">Escanear QR</button>
+          <button class="modal-btn" type="button" id="spool-action-pick">Seleccionar carrete</button>
+          <button class="modal-btn" type="button" data-close="spool-action-modal">Cancelar</button>
+        </div>
+        <div class="modal-status" id="spool-action-status"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="spool-picker-modal">
+    <div class="modal-card" style="width:min(760px, calc(100vw - 28px))">
+      <div class="modal-head">
+        <h3 class="modal-title" id="spool-picker-title">Seleccionar carrete</h3>
+        <button class="modal-close" type="button" data-close="spool-picker-modal">x</button>
+      </div>
+      <div class="modal-body">
+        <input class="picker-search" id="spool-picker-search" type="text" placeholder="Buscar por numero (ej. 77), material, nombre o fabricante">
+        <div class="picker-list" id="spool-picker-list"></div>
+        <div class="modal-status" id="spool-picker-status"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="spool-scan-modal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 class="modal-title" id="spool-scan-title">Escanear QR de carrete</h3>
+        <button class="modal-close" type="button" data-close="spool-scan-modal">x</button>
+      </div>
+      <div class="modal-body">
+        <video class="scan-video" id="spool-scan-video" autoplay playsinline muted></video>
+        <div class="modal-actions">
+          <button class="modal-btn warn" type="button" id="spool-scan-stop">Detener camara</button>
+          <button class="modal-btn" type="button" data-close="spool-scan-modal">Cerrar</button>
+        </div>
+        <div class="modal-status" id="spool-scan-status">Listo para escanear.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if (window.location.protocol === 'https:') {
+      // Redireccion forzada a HTTP local para maximo rendimiento operativo.
+      window.location.replace('http://192.0.2.10:8788/index.html');
+    }
+
+    const HTTPS_PAGE = window.location.protocol === 'https:';
+    const CAMERA_PROXY_BASE = {
+      '192.0.2.11': '/proxy/se01',
+      '192.0.2.12': '/proxy/se02',
+      '192.0.2.13': '/proxy/ma01'
+    };
+
+    function cameraBase(ipOrHost) {
+      if (!HTTPS_PAGE) return `http://${ipOrHost}`;
+      return CAMERA_PROXY_BASE[ipOrHost] || `http://${ipOrHost}`;
+    }
+
+    function mainsailDirectUrl(ipOrHost) {
+      return `http://${ipOrHost}/`;
+    }
+
+    const CAMERAS = [
+      { id:'SE01', ip:'192.0.2.11', maintenance:false, stream: HTTPS_PAGE ? ['/proxy/se01/webcam/?action=snapshot','/proxy/se01/webcam/?action=stream','/proxy/se01-alt/?action=stream'] : ['http://192.0.2.11/webcam/?action=stream','http://192.0.2.11:8080/?action=stream','http://192.0.2.11/webcam/?action=snapshot'] },
+      { id:'SE02', ip:'192.0.2.12', maintenance:false, stream: HTTPS_PAGE ? ['/proxy/se02/webcam/?action=snapshot','/proxy/se02/webcam/?action=stream','/proxy/se02-alt/?action=stream'] : ['http://192.0.2.12/webcam/?action=stream','http://192.0.2.12:8080/?action=stream','http://192.0.2.12/webcam/?action=snapshot'] },
+      { id:'MA01', ip:'192.0.2.13', maintenance:false, stream: HTTPS_PAGE ? ['/proxy/ma01/webcam/?action=snapshot','/proxy/ma01/webcam/?action=stream','/proxy/ma01-alt/?action=stream'] : ['http://192.0.2.13/webcam/?action=stream','http://192.0.2.13:8080/?action=stream','http://192.0.2.13/webcam/?action=snapshot'] }
+    ];
+    const CONTROL_GROUPS = [
+      {
+        title: 'Inicializar',
+        buttons: [
+          { label:'Todo', command:'G28', className:'primary' },
+          { label:'X', command:'G28 X', className:'axis' },
+          { label:'Y', command:'G28 Y', className:'axis' },
+          { label:'Z', command:'G28 Z', className:'axis' }
+        ]
+      },
+      {
+        title: 'Macros',
+        buttons: [
+          { label:'Manual Clear Bed', command:'MANUAL_CLEAR_BED' },
+          { label:'Calibrar Punta', command:'calibrar_punta' },
+          { label:'Destrabar BLTouch', command:'DESTRABAR_BLTOUCH' },
+          { label:'Extraer Material', command:'EXTRAER_MATERIAL' },
+          { label:'Cargar Material', command:'CARGAR_MATERIAL', printers:['MA01','SE02','SE01'] }
+        ]
+      },
+      {
+        title: 'Seguridad',
+        buttons: [
+          { label:'Pausar', action:'pause_print', className:'warn' },
+          { label:'Cancelar impresión', action:'cancel_print', className:'danger', printers:['SE01','SE02','MA01'] },
+          { label:'Parada de emergencia', action:'emergency_stop', className:'danger' }
+        ]
+      }
+    ];
+    const TEMP_OBJECTS = [
+      { key:'extruder', label:'Extruder', hasTarget:true },
+      { key:'heater_bed', label:'Heater Bed', hasTarget:true },
+      { key:'temperature_sensor mcu_temp', label:'Mcu Temp', hasTarget:false },
+      { key:'temperature_sensor Orange_Pi', label:'Orange Pi', hasTarget:false }
+    ];
+    const PRINT_BROKER_URL = HTTPS_PAGE ? '/proxy/print-broker' : 'http://192.0.2.14:8120';
+    const PRINT_HOST_URL = HTTPS_PAGE ? '/proxy/print-host' : 'http://192.0.2.14:8099';
+    const SPOOLMAN_BASE = HTTPS_PAGE ? '/proxy/spoolman' : 'http://192.0.2.10:7912';
+    const SPOOLMAN_PROXY_HOSTS = ['192.0.2.12', '192.0.2.13', '192.0.2.11'];
+
+    const grid = document.getElementById('grid');
+    const printHostGrid = document.getElementById('printhost-grid');
+    const inventoryGrid = document.getElementById('inventory-grid');
+    const inventorySummary = document.getElementById('inventory-summary');
+    const printHostConnChip = document.getElementById('ph-conn-chip');
+    const printHostPrinterChip = document.getElementById('ph-printer-chip');
+      const spoolmanServiceBadge = document.getElementById('spoolman-service-badge');
+      const spoolmanTotalCount = document.getElementById('spoolman-total-count');
+      const spoolmanActiveCount = document.getElementById('spoolman-active-count');
+      const spoolmanLastCheck = document.getElementById('spoolman-last-check');
+      const labHttpBadge = document.getElementById('lab-http-badge');
+      const labHttpCode = document.getElementById('lab-http-code');
+      const labHttpLastCheck = document.getElementById('lab-http-last-check');
+
+      function updateSpoolmanServiceCard(ok, totalSpools=0, activeSpools=0) {
+        const hhmm = new Date().toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
+        if (spoolmanServiceBadge) {
+          spoolmanServiceBadge.className = `spoolman-service-badge ${ok ? 'ok' : 'error'}`.trim();
+          spoolmanServiceBadge.textContent = ok ? 'Activo' : 'No disponible';
+        }
+        if (spoolmanTotalCount) spoolmanTotalCount.textContent = String(totalSpools);
+        if (spoolmanActiveCount) spoolmanActiveCount.textContent = String(activeSpools);
+        if (spoolmanLastCheck) spoolmanLastCheck.textContent = hhmm;
+      }
+
+      function updateLaboratorioHttpCard(ok, httpCode='--') {
+        const hhmm = new Date().toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
+        if (labHttpBadge) {
+          labHttpBadge.className = `spoolman-service-badge ${ok ? 'ok' : 'error'}`.trim();
+          labHttpBadge.textContent = ok ? 'Activo' : 'No disponible';
+        }
+        if (labHttpCode) labHttpCode.textContent = String(httpCode);
+        if (labHttpLastCheck) labHttpLastCheck.textContent = hhmm;
+      }
+
+      async function checkLaboratorioHttpStatus() {
+        try {
+          const res = await fetch(`./index.html?ts=${Date.now()}`, { method:'GET', cache:'no-store' });
+          updateLaboratorioHttpCard(res.ok, res.status);
+        } catch (_) {
+          updateLaboratorioHttpCard(false, 'ERR');
+        }
+      }
+
+    const startupExpected = new Set();
+    const startupDone = new Set();
+
+    function hideAppLoader() {
+      return;
+    }
+
+    function registerStartupTask(taskId) {
+      startupExpected.add(taskId);
+    }
+
+    function completeStartupTask(taskId) {
+      startupDone.add(taskId);
+      if (startupExpected.size > 0 && startupDone.size >= startupExpected.size) {
+        hideAppLoader();
+      }
+    }
+
+    async function runStartupTask(taskId, fn) {
+      try {
+        await fn();
+      } catch (_) {
+      } finally {
+        completeStartupTask(taskId);
+      }
+    }
+
+    const spoolActionModal = document.getElementById('spool-action-modal');
+    const spoolPickerModal = document.getElementById('spool-picker-modal');
+    const spoolScanModal = document.getElementById('spool-scan-modal');
+    const spoolActionTitle = document.getElementById('spool-action-title');
+    const spoolActionStatus = document.getElementById('spool-action-status');
+    const spoolPickerTitle = document.getElementById('spool-picker-title');
+    const spoolPickerSearch = document.getElementById('spool-picker-search');
+    const spoolPickerList = document.getElementById('spool-picker-list');
+    const spoolPickerStatus = document.getElementById('spool-picker-status');
+    const spoolScanTitle = document.getElementById('spool-scan-title');
+    const spoolScanVideo = document.getElementById('spool-scan-video');
+    const spoolScanStatus = document.getElementById('spool-scan-status');
+
+    let currentSpoolCam = null;
+    let spoolCatalog = [];
+    let scanStream = null;
+    let scanLoopHandle = null;
+
+    function cardTemplate(cam) {
+      const controlRows = CONTROL_GROUPS.map(group => `<div class="control-row">${group.buttons.filter(btn => !btn.printers || btn.printers.includes(cam.id)).map(btn => `<button class="control-btn ${btn.className || ''}" type="button" data-cmd="${btn.command || ''}" data-action="${btn.action || ''}" data-printer="${cam.id}">${btn.label}</button>`).join('')}</div>`).join('');
+      return `<article class="cam" id="card-${cam.id}" data-ip="${cam.ip}" tabindex="0" role="link" aria-label="Abrir ${cam.id} en Mainsail">
+        <header class="cam-head">
+          <h2 class="cam-title">${cam.id}</h2>
+          <div class="cam-head-actions"><button class="share-btn" type="button" data-share="${cam.id}">Compartir impresión en curso</button><span class="badge loading" id="st-${cam.id}">Cargando</span></div>
+        </header>
+        <div class="frame" id="fr-${cam.id}"><div class="placeholder">Conectando a camara ${cam.id}...</div></div>
+        <div class="cam-meta">
+          <div><strong>IP Tailscale:</strong> ${cam.ip}</div>
+          <div class="path" id="src-${cam.id}">Buscando fuente...</div>
+          <div class="mainsail-hint">Click para abrir Mainsail</div>
+        </div>
+        <section class="live">
+          <div class="live-title">Estado de impresion</div>
+          <div id="live-${cam.id}" class="live-empty">Consultando estado...</div>
+        </section>
+        <section class="cam-material"><div class="spool-title">Material asignado · Spoolman</div>${spoolItemTemplate(cam)}<div class="spool-change-hint">Pulsa el carrete para cambiar o escanear material.</div></section>
+        ${cam.id === 'SE01' ? `<section class="ups-card" id="ups-card-SE01" style="cursor:pointer" data-ups-link="http://192.0.2.11:8788/apc/se01"><div class="ups-title">Energía / APC UPS <span style="float:right;color:#2c5bc4">Abrir panel</span></div><div class="ups-grid"><div class="ups-item"><div class="k">Estado</div><div class="v" id="ups-status-SE01">Consultando...</div></div><div class="ups-item"><div class="k">Batería</div><div class="v" id="ups-bcharge-SE01">--</div></div><div class="ups-item"><div class="k">Carga</div><div class="v" id="ups-load-SE01">--</div></div><div class="ups-item"><div class="k">Tiempo restante</div><div class="v" id="ups-timeleft-SE01">--</div></div></div><div class="ups-status" id="ups-meta-SE01">APC conectado por USB en su propia Raspberry.</div></section>` : ''}
+        ${cam.id === 'SE02' ? `<section class="ups-card" id="ups-card-SE02" style="cursor:pointer" data-ups-link="http://192.0.2.12:8788/apc/se02"><div class="ups-title">Energía / APC UPS <span style="float:right;color:#2c5bc4">Abrir panel</span></div><div class="ups-grid"><div class="ups-item"><div class="k">Estado</div><div class="v" id="ups-status-SE02">Consultando...</div></div><div class="ups-item"><div class="k">Batería</div><div class="v" id="ups-bcharge-SE02">--</div></div><div class="ups-item"><div class="k">Carga</div><div class="v" id="ups-load-SE02">--</div></div><div class="ups-item"><div class="k">Tiempo restante</div><div class="v" id="ups-timeleft-SE02">--</div></div></div><div class="ups-status" id="ups-meta-SE02">APC SE02 conectado por USB en su propia Raspberry.</div></section>` : ''}
+        ${cam.id === 'MA01' ? `<section class="ups-card" id="ups-card-MA01" style="cursor:pointer" data-ups-link="http://192.0.2.13:8788/apc/ma01"><div class="ups-title">Energía / APC UPS <span style="float:right;color:#2c5bc4">Abrir panel</span></div><div class="ups-grid"><div class="ups-item"><div class="k">Estado</div><div class="v" id="ups-status-MA01">Consultando...</div></div><div class="ups-item"><div class="k">Batería</div><div class="v" id="ups-bcharge-MA01">--</div></div><div class="ups-item"><div class="k">Carga</div><div class="v" id="ups-load-MA01">--</div></div><div class="ups-item"><div class="k">Tiempo restante</div><div class="v" id="ups-timeleft-MA01">--</div></div></div><div class="ups-status" id="ups-meta-MA01">APC MA01 conectado por USB en su propia Raspberry.</div></section>` : ''}
+        <section class="queue">
+          <div class="queue-title">Trabajos en cola <span class="queue-count" id="queue-count-${cam.id}">0</span></div>
+          <div id="queue-${cam.id}" class="queue-empty">Consultando cola...</div>
+        </section>
+        <section class="controls">
+          <div class="controls-title">Inicializar y macros</div>
+          <div class="control-groups">${controlRows}</div>
+          <div id="control-status-${cam.id}" class="control-status">Listo para ejecutar comandos.</div>
+        </section>
+        <section class="temps">
+          <div class="temps-title">Temperaturas</div>
+          <div class="temps-head"><div>Nombre</div><div>Estado</div><div>Actual</div><div>Objetivo</div></div>
+          <div id="temps-${cam.id}" class="temps-empty">Consultando temperaturas...</div>
+        </section>
+        <section class="gcode">
+          <h3>Ultimos G-code cargados</h3>
+          <div class="gcode-grid" id="gcode-${cam.id}"></div>
+        </section>
+      </article>`;
+    }
+
+    function spoolItemTemplate(cam) {
+      return `<div class="spool-item selectable" id="spool-${cam.id}" role="button" tabindex="0" aria-label="Cambiar carrete de ${cam.id==='INTAMSYS'?'HT09':cam.id}"><div class="spool-thumb" id="spool-thumb-${cam.id}">?</div><div class="spool-text" id="spool-text-${cam.id}"><strong>${cam.id}</strong><br>Cargando material...</div></div>`;
+    }
+
+    function gcodeTemplate(camId, idx, name) {
+      const isRealGcode = /\.gcode$/i.test(String(name || ''));
+      const classes = isRealGcode ? 'gcode-card clickable' : 'gcode-card';
+      const role = isRealGcode ? ' role="button" tabindex="0"' : '';
+      const hint = isRealGcode ? 'Click para imprimir este archivo' : 'Cargando miniatura...';
+      return `<article class="${classes}" data-cam="${camId}" data-file="${name || ''}"${role}><div class="gcode-thumb-wrap"><img class="gcode-thumb" id="thumb-${camId}-${idx}" alt="Miniatura ${name}"></div><div class="gcode-info"><div class="gcode-name">${name}</div><div class="gcode-status" id="thumbst-${camId}-${idx}">${hint}</div></div></article>`;
+    }
+
+    function compactInventoryTemplate(items, totals, avgEfficiency) {
+      const donutStops = [];
+      let cursor = 0;
+      const top = items.slice(0, 6);
+      for (const item of top) {
+        const pct = totals.kg > 0 ? (item.remainingG / 1000) / totals.kg * 100 : 0;
+        const start = cursor.toFixed(2);
+        cursor += pct;
+        const end = cursor.toFixed(2);
+        donutStops.push(`${item.color} ${start}% ${end}%`);
+      }
+      if (cursor < 100) donutStops.push(`#e8edf4 ${cursor.toFixed(2)}% 100%`);
+
+      const rows = top.map(item => {
+        const kg = (item.remainingG / 1000).toFixed(2);
+        const label = item.label || item.material || 'Filamento';
+        return `<div class="inv-row"><span class="inv-dot" style="background:${item.color}"></span><span class="inv-name">${label}</span><span class="inv-val">${kg} kg</span><span class="inv-effi">${item.efficiency.toFixed(0)}%</span></div>`;
+      }).join('');
+
+      return `<div class="inventory-compact"><div class="inv-donut-wrap"><div class="inv-donut" style="background:conic-gradient(${donutStops.join(',')})"><div class="inv-donut-hole"><strong>${totals.kg.toFixed(2)}</strong><span>kg totales</span></div></div></div><div class="inv-right"><div class="inv-list">${rows}</div><div class="inv-kpis"><div class="inv-kpi"><strong>${items.length}</strong><span>Materiales</span></div><div class="inv-kpi"><strong>${totals.spools}</strong><span>Bobinas</span></div><div class="inv-kpi"><strong>${totals.km.toFixed(2)}</strong><span>km disponibles</span></div><div class="inv-kpi"><strong>${avgEfficiency.toFixed(0)}%</strong><span>Eficiencia promedio</span></div></div></div></div>`;
+    }
+
+    function setHeaderStatus(id, type, text) {
+      const el = document.getElementById(`st-${id}`);
+      if (!el) return;
+      el.className = `badge ${type}`;
+      el.textContent = text;
+    }
+
+    function showFeed(id, url) {
+      document.getElementById(`fr-${id}`).innerHTML = `<img class="feed" src="${url}" alt="Camara ${id}">`;
+      document.getElementById(`src-${id}`).textContent = url;
+    }
+
+    function showCamMessage(id, msg, path) {
+      document.getElementById(`fr-${id}`).innerHTML = `<div class="placeholder">${msg}</div>`;
+      document.getElementById(`src-${id}`).textContent = path || 'Sin fuente disponible';
+    }
+
+    const cameraSnapshotTimers = new Map();
+
+    function stopSnapshotRefresh(camId) {
+      const t = cameraSnapshotTimers.get(camId);
+      if (t) {
+        clearInterval(t);
+        cameraSnapshotTimers.delete(camId);
+      }
+    }
+
+    function startSnapshotRefresh(camId, baseUrl, intervalMs=3000) {
+      stopSnapshotRefresh(camId);
+      const tick = () => {
+        const img = document.querySelector(`#fr-${camId} img.feed`);
+        if (!img) return;
+        img.src = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}_=${Date.now()}`;
+      };
+      tick();
+      const timer = setInterval(tick, intervalMs);
+      cameraSnapshotTimers.set(camId, timer);
+    }
+
+    function makeThumbPlaceholder(name) {
+      const txt = name.replace('.gcode','').slice(0, 12);
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 260 260'><defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop stop-color='#dbe6f7' offset='0'/><stop stop-color='#eff3fa' offset='1'/></linearGradient></defs><rect width='260' height='260' fill='url(#g)'/><rect x='20' y='20' width='220' height='220' rx='18' fill='#ffffff' stroke='#d9dee5'/><text x='130' y='136' text-anchor='middle' font-family='Segoe UI, Arial' font-size='18' fill='#223143'>${txt}</text><text x='130' y='164' text-anchor='middle' font-family='Segoe UI, Arial' font-size='12' fill='#607086'>GCODE</text></svg>`;
+      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    }
+
+    function formatTemp(value) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return '--';
+      return `${Number(value).toFixed(1)} C`;
+    }
+
+    function safeName(name) {
+      return (name || 'Sin nombre').replace(/\.gcode$/i, '');
+    }
+
+    function previewSvg(printerId, filename) {
+      const short = safeName(filename).slice(0, 52);
+      const line2 = filename ? `Archivo: ${safeName(filename)}` : 'Sin archivo reciente';
+      const now = new Date().toLocaleString('es-MX');
+      return `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 300'><rect width='900' height='300' fill='#f4f6fa'/><rect x='18' y='18' width='864' height='264' rx='12' fill='#ffffff' stroke='#d9dee5'/><text x='36' y='82' font-family='Segoe UI, Arial' font-size='54' font-weight='800' fill='#111'>${printerId}</text><text x='36' y='132' font-family='Segoe UI, Arial' font-size='28' fill='#243140'>${short || 'Sin G-code reciente'}</text><text x='36' y='174' font-family='Segoe UI, Arial' font-size='22' fill='#5f6d7c'>${line2}</text><text x='36' y='228' font-family='Segoe UI, Arial' font-size='20' fill='#6e7f92'>${now}</text><rect x='648' y='198' width='214' height='64' rx='28' fill='#e9f7f3' stroke='#b8d9d1'/><text x='755' y='238' text-anchor='middle' font-family='Segoe UI, Arial' font-size='22' font-weight='700' fill='#106b59'>PRINT HOST</text></svg>`;
+    }
+
+    function previewDataUrl(printerId, filename) {
+      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(previewSvg(printerId, filename))}`;
+    }
+
+    function printHostCardTemplate(cam, fileName, previewUrl) {
+      const id = `ph-${cam.id}`;
+      return `<article class="ph-card" id="${id}" data-printer="${cam.id}" data-file="${fileName || ''}" role="button" tabindex="0" aria-label="Imprimir etiqueta ${cam.id}"><div class="ph-preview-wrap"><img class="ph-preview" src="${previewUrl}" alt="Preview etiqueta ${cam.id}"></div><div class="ph-body"><div class="ph-name">${cam.id}: ${fileName || 'Sin G-code reciente'}</div><div class="ph-sub">Click para autorizar e imprimir etiqueta</div><div class="ph-actions"><button class="ph-btn" type="button" data-print="${cam.id}">AUTORIZAR IMPRESIÓN</button><span class="ph-status" id="ph-status-${cam.id}">Listo</span></div></div></article>`;
+    }
+
+    function setPrintHostStatus(camId, msg, type='') {
+      const el = document.getElementById(`ph-status-${camId}`);
+      if (!el) return;
+      el.className = `ph-status ${type}`.trim();
+      el.textContent = msg;
+    }
+
+    async function fetchBrokerState() {
+      const res = await fetch(`${PRINT_BROKER_URL}/state?ts=${Date.now()}`, {
+        method:'GET',
+        cache:'no-store'
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return await res.json();
+    }
+
+    async function loadImageForCanvas(src, timeout=5000) {
+      return await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        const timer = setTimeout(() => reject(new Error('Timeout cargando imagen')), timeout);
+        img.onload = () => {
+          clearTimeout(timer);
+          resolve(img);
+        };
+        img.onerror = () => {
+          clearTimeout(timer);
+          reject(new Error('No se pudo cargar imagen'));
+        };
+        img.src = src;
+      });
+    }
+
+    function drawCoverImage(ctx, img, x, y, w, h) {
+      const srcRatio = img.width / img.height;
+      const dstRatio = w / h;
+      let sx = 0;
+      let sy = 0;
+      let sw = img.width;
+      let sh = img.height;
+      if (srcRatio > dstRatio) {
+        sw = img.height * dstRatio;
+        sx = (img.width - sw) / 2;
+      } else {
+        sh = img.width / dstRatio;
+        sy = (img.height - sh) / 2;
+      }
+      ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+    }
+
+    function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, maxLines=2) {
+      const words = String(text || '').split(/\s+/).filter(Boolean);
+      if (!words.length) return y;
+      let line = '';
+      let used = 0;
+      for (let i = 0; i < words.length; i++) {
+        const candidate = line ? `${line} ${words[i]}` : words[i];
+        if (ctx.measureText(candidate).width <= maxWidth) {
+          line = candidate;
+          continue;
+        }
+        used += 1;
+        if (used >= maxLines) {
+          const clipped = `${line}`;
+          ctx.fillText(clipped.length ? clipped : words[i], x, y);
+          return y;
+        }
+        ctx.fillText(line, x, y);
+        y += lineHeight;
+        line = words[i];
+      }
+      if (line && used < maxLines) {
+        ctx.fillText(line, x, y);
+      }
+      return y;
+    }
+
+    async function getPrintPreviewImage(cam, fileName) {
+      const src = previewDataUrl(cam.id, fileName);
+      try {
+        return await loadImageForCanvas(src, 5000);
+      } catch (_) {
+        return await loadImageForCanvas(makeThumbPlaceholder(fileName || cam.id), 5000);
+      }
+    }
+
+    async function getPrintPreviewUrl(cam, fileName) {
+      const wanted = String(fileName || '').trim();
+
+      if (wanted) {
+        try {
+          return await resolveThumbUrl(cam.ip, wanted);
+        } catch (_) {}
+      }
+
+      if (wanted && !wanted.includes('/')) {
+        try {
+          const listJson = await fetchJson(`${cameraBase(cam.ip)}/server/files/list?root=gcodes`);
+          const all = listJson?.result || [];
+          const lower = wanted.toLowerCase();
+          const match = all.find(item => {
+            const p = String(item?.path || '').toLowerCase();
+            return p === lower || p.endsWith(`/${lower}`);
+          });
+          if (match?.path) return await resolveThumbUrl(cam.ip, match.path);
+        } catch (_) {}
+      }
+
+      try {
+        const recent = await fetchRecentWithThumbs(cam.ip, 1);
+        if (recent.length && recent[0].thumbUrl) return recent[0].thumbUrl;
+      } catch (_) {}
+
+      return previewDataUrl(cam.id, fileName);
+    }
+
+    function grayscaleArea(ctx, x, y, w, h) {
+      const data = ctx.getImageData(x, y, w, h);
+      const px = data.data;
+      for (let i = 0; i < px.length; i += 4) {
+        const g = Math.round((px[i] * 0.299) + (px[i + 1] * 0.587) + (px[i + 2] * 0.114));
+        px[i] = g;
+        px[i + 1] = g;
+        px[i + 2] = g;
+      }
+      ctx.putImageData(data, x, y);
+    }
+
+    async function getSpoolLabelData(cam) {
+      const fallback = {
+        lot: 'Sin lote',
+        material: 'Material N/D',
+        spoolNumber: '#N/D',
+        colorHex: '#cfd8e4',
+        colorName: 'Color N/D'
+      };
+      try {
+        const st = await fetchJson(`${cameraBase(cam.ip)}/server/spoolman/status`, {}, 6000);
+        const spoolId = st?.result?.spool_id;
+        if (!spoolId) return fallback;
+        const details = await fetchJson(`${cameraBase(cam.ip)}/server/spoolman/proxy`, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ request_method:'GET', path:`/v1/spool/${spoolId}` })
+        }, 7000);
+        const spool = details?.result || {};
+        const filament = spool.filament || {};
+        const lot = spool.lot_nr || spool.lot_number || spool.lot || filament.lot_nr || filament.lot_number || filament.lot || fallback.lot;
+        const spoolNumber = spool.id !== undefined && spool.id !== null ? `#${spool.id}` : fallback.spoolNumber;
+        const colorHex = normalizeHexColor(filament.color_hex || spool.color_hex || fallback.colorHex);
+        const colorName = filament.color_name || filament.color || spool.color_name || colorHex;
+        const material = filament.material || spool.material || fallback.material;
+        return { lot, material, spoolNumber, colorHex, colorName };
+      } catch (_) {
+        return fallback;
+      }
+    }
+
+    async function getLatestGcode(cam) {
+      try {
+        const recent = await fetchRecentWithThumbs(cam.ip, 1);
+        if (recent.length && recent[0].name) return recent[0].name;
+      } catch (_) {}
+      try {
+        const ps = await fetchPrintStats(cam.ip);
+        if (ps?.filename) return ps.filename;
+      } catch (_) {}
+      return '';
+    }
+
+    async function buildLabelCanvas(cam, fileName) {
+      const camId = cam.id;
+      const spool = await getSpoolLabelData(cam);
+      const previewImg = await getPrintPreviewImage(cam, fileName);
+      const canvas = document.createElement('canvas');
+      canvas.width = 991;
+      canvas.height = 306;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Canvas no disponible');
+      }
+
+      const now = new Date().toLocaleString('es-MX');
+      const short = safeName(fileName).slice(0, 72);
+      const line2 = fileName ? `Archivo: ${safeName(fileName).slice(0, 76)}` : 'Sin archivo reciente';
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#d3dae2';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+
+      const px = 20;
+      const py = 20;
+      const pw = 270;
+      const ph = 200;
+      ctx.fillStyle = '#f4f7fb';
+      ctx.fillRect(px, py, pw, ph);
+      ctx.strokeStyle = '#ccd6e2';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px, py, pw, ph);
+      drawCoverImage(ctx, previewImg, px + 6, py + 6, pw - 12, ph - 12);
+      grayscaleArea(ctx, px + 6, py + 6, pw - 12, ph - 12);
+
+      ctx.fillStyle = '#5f6d7c';
+      ctx.font = 'bold 12px Segoe UI, Arial, sans-serif';
+      ctx.fillText('PREVIA DEL MODELO', px, py + ph + 16);
+
+      const tx = 305;
+      const tw = 660;
+
+      // Encabezado
+      ctx.fillStyle = '#111111';
+      ctx.font = 'bold 42px Segoe UI, Arial, sans-serif';
+      ctx.fillText(camId, tx, 56);
+
+      ctx.fillStyle = '#1f2f40';
+      ctx.font = 'bold 22px Segoe UI, Arial, sans-serif';
+      drawWrappedText(ctx, short || 'Sin G-code reciente', tx, 88, tw, 23, 2);
+
+      // Separador superior
+      ctx.strokeStyle = '#d7dfe8';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(tx, 102);
+      ctx.lineTo(tx + tw, 102);
+      ctx.stroke();
+
+      // Bloque trazabilidad
+      ctx.fillStyle = '#36485d';
+      ctx.font = 'bold 14px Segoe UI, Arial, sans-serif';
+      ctx.fillText('TRAZABILIDAD', tx, 120);
+      ctx.font = '15px Segoe UI, Arial, sans-serif';
+      drawWrappedText(ctx, line2, tx, 140, tw, 18, 1);
+      ctx.fillText(`Fecha y hora final: ${now}`, tx, 160);
+
+      // Bloque material
+      ctx.fillStyle = '#36485d';
+      ctx.font = 'bold 14px Segoe UI, Arial, sans-serif';
+      ctx.fillText('MATERIAL', tx + 340, 120);
+      ctx.font = '15px Segoe UI, Arial, sans-serif';
+      ctx.fillText(`Carrete: ${spool.spoolNumber}`, tx + 340, 140);
+      ctx.fillText(`Lote: ${spool.lot}`, tx + 340, 160);
+      ctx.fillText(`Material: ${spool.material}`, tx + 340, 180);
+      ctx.fillText(`Color: ${spool.colorName}`, tx + 340, 200);
+
+      // Separador inferior
+      ctx.strokeStyle = '#d7dfe8';
+      ctx.beginPath();
+      ctx.moveTo(tx, 214);
+      ctx.lineTo(tx + tw, 214);
+      ctx.stroke();
+
+      // Bloque legal
+      ctx.fillStyle = '#233142';
+      ctx.font = 'bold 14px Segoe UI, Arial, sans-serif';
+      ctx.fillText('Manufacturado y Distribuido por: inMateriis S.A de C.V', tx, 232);
+      ctx.font = '12px Segoe UI, Arial, sans-serif';
+      ctx.fillText('Miguel Lerdo de Tejada, 2326-A', tx, 247);
+      ctx.fillText('Col. Lafayette, Guadalajara, Mexico. 44150', tx, 260);
+
+      ctx.fillStyle = '#b42318';
+      ctx.font = 'bold 17px Segoe UI, Arial, sans-serif';
+      ctx.fillText('NO IMPLANTABLE Y NO COMESTIBLE', tx, 285);
+
+      return canvas;
+    }
+
+    async function sendToPrintHost(cam, fileName) {
+      const res = await fetch(`${PRINT_BROKER_URL}/print/${cam.id}`, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ fileName: fileName || '' })
+      });
+      let payload = null;
+      try { payload = await res.json(); } catch (_) {}
+      if (res.ok) return payload || { ok: true };
+      const err = new Error(`HTTP ${res.status}`);
+      err.status = res.status;
+      err.payload = payload;
+      throw err;
+    }
+
+    async function handlePrintHostClick(cam) {
+      const card = document.getElementById(`ph-${cam.id}`);
+      if (!card) return;
+      if (card.dataset.busy === '1') return;
+      const fileName = card.getAttribute('data-file') || '';
+      if (!fileName) {
+        setPrintHostStatus(cam.id, 'Sin G-code', 'error');
+        return;
+      }
+      const ok = confirm(`Enviar etiqueta de ${cam.id} al Print Host para:\n${fileName}?`);
+      if (!ok) return;
+      card.dataset.busy = '1';
+      setPrintHostStatus(cam.id, 'Enviando...');
+      try {
+        const result = await sendToPrintHost(cam, fileName);
+        if (result?.duplicate) {
+          setPrintHostStatus(cam.id, 'Ya enviado', 'ok');
+        } else {
+          setPrintHostStatus(cam.id, 'Enviado', 'ok');
+        }
+      } catch (err) {
+        if (err?.status === 429) {
+          setPrintHostStatus(cam.id, 'Ya enviado', 'ok');
+        } else {
+        setPrintHostStatus(cam.id, 'Fallo envio', 'error');
+        }
+      } finally {
+        setTimeout(() => {
+          card.dataset.busy = '0';
+        }, 2500);
+      }
+    }
+
+    function bindPrintHostCard(cam) {
+      const card = document.getElementById(`ph-${cam.id}`);
+      if (!card) return;
+      const action = async ev => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        await handlePrintHostClick(cam);
+      };
+      card.addEventListener('click', action);
+      card.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter' || ev.key === ' ') action(ev);
+      });
+      const btn = card.querySelector('.ph-btn');
+      if (btn) btn.addEventListener('click', action);
+    }
+
+    async function renderUpsStatus(printerId) {
+      const statusEl = document.getElementById(`ups-status-${printerId}`);
+      const bchargeEl = document.getElementById(`ups-bcharge-${printerId}`);
+      const loadEl = document.getElementById(`ups-load-${printerId}`);
+      const timeleftEl = document.getElementById(`ups-timeleft-${printerId}`);
+      const metaEl = document.getElementById(`ups-meta-${printerId}`);
+      if (!statusEl) return;
+      const endpoint = printerId === "SE02" ? "/proxy/se02-ups" : (printerId === "MA01" ? "/proxy/ma01-ups" : "/proxy/se01-ups");
+      try {
+        const res = await fetch(endpoint + "?ts=" + Date.now(), { cache:"no-store" });
+        const d = await res.json();
+        if (!res.ok || !d.ok) throw new Error(d.error || "UPS no disponible");
+        statusEl.textContent = d.status || "--";
+        bchargeEl.textContent = d.bcharge || "--";
+        loadEl.textContent = d.loadpct || "--";
+        timeleftEl.textContent = d.timeleft || "--";
+        metaEl.textContent = `${d.model || "APC"} · ${d.linev || ""}`.trim();
+      } catch (e) {
+        statusEl.textContent = "No disponible";
+        bchargeEl.textContent = "--";
+        loadEl.textContent = "--";
+        timeleftEl.textContent = "--";
+        metaEl.textContent = e.message;
+      }
+    }
+
+    async function renderPrintHost() {
+
+      if (!printHostGrid) return;
+      printHostGrid.innerHTML = '';
+      for (const cam of [...CAMERAS, {id:'IDEX'}, {id:'INTAMSYS'}]) {
+        const latest = ['IDEX','INTAMSYS'].includes(cam.id) ? ((await fetchBrokerState()).printers?.[cam.id]?.filename || '') : await getLatestGcode(cam);
+        const previewUrl = '';
+        printHostGrid.insertAdjacentHTML('beforeend', printHostCardTemplate(cam, latest, previewUrl));
+        const card = document.getElementById(`ph-${cam.id}`);
+        if(cam.id==='INTAMSYS'&&!latest){card.querySelector('.ph-btn').disabled=true;card.querySelector('.ph-sub').textContent='Esperando el primer trabajo de HT09';setPrintHostStatus(cam.id,'Sin trabajo');}
+        const img = card ? card.querySelector('.ph-preview') : null;
+        if (img) {
+          await loadBrokerPreviewIntoImage(cam.id, img);
+        }
+        bindPrintHostCard(cam);
+      }
+    }
+
+    async function loadBrokerPreviewIntoImage(printerId, imgEl) {
+      if (!imgEl) return;
+      const remoteUrl = `${PRINT_BROKER_URL}/preview/${printerId}.png?v=${Date.now()}`;
+      try {
+        const res = await fetch(remoteUrl, { method:'GET', cache:'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        if (!blob || !String(blob.type || '').includes('image')) {
+          throw new Error('Respuesta no es imagen');
+        }
+        const oldObjectUrl = imgEl.dataset.objectUrl || '';
+        const newObjectUrl = URL.createObjectURL(blob);
+        imgEl.src = newObjectUrl;
+        imgEl.dataset.objectUrl = newObjectUrl;
+        if (oldObjectUrl) URL.revokeObjectURL(oldObjectUrl);
+      } catch (_) {
+        // Fallback directo si el navegador permite cargar img remota.
+        imgEl.src = remoteUrl;
+      }
+    }
+
+    async function refreshPrintHostPreviews() {
+      const brokerState=await fetchBrokerState().catch(()=>null);
+      for (const cam of [...CAMERAS, {id:'IDEX'}, {id:'INTAMSYS'}]) {
+        const card = document.getElementById(`ph-${cam.id}`);
+        if (!card) continue;
+        if(['IDEX','INTAMSYS'].includes(cam.id)&&brokerState){const row=brokerState.printers?.[cam.id],filename=row?.filename||'';card.setAttribute('data-file',filename);card.querySelector('.ph-name').textContent=(cam.id==='INTAMSYS'?'HT09':cam.id)+': '+(filename||'Sin trabajo');card.querySelector('.ph-btn').disabled=!row?.ok||!filename;card.querySelector('.ph-sub').textContent=filename?'Click para autorizar e imprimir etiqueta':'Esperando un trabajo';setPrintHostStatus(cam.id,!row?.ok?'Sin conexión':filename?'Listo':'Sin trabajo');}
+        const img = card.querySelector('.ph-preview');
+        if (!img) continue;
+        await loadBrokerPreviewIntoImage(cam.id, img);
+      }
+    }
+
+    function setPrintHostHeaderChip(el, text, state='') {
+      if (!el) return;
+      el.className = `ph-health-chip ${state}`.trim();
+      el.textContent = text;
+    }
+
+    async function probePrintHostReachability(timeout=4500) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeout);
+      try {
+        await fetch(`${PRINT_BROKER_URL}/health?ts=${Date.now()}`, {
+          method:'GET',
+          mode:'no-cors',
+          cache:'no-store',
+          signal: ctrl.signal
+        });
+        return true;
+      } catch (_) {
+        return false;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function updatePrintHostBannerStatus() {
+      setPrintHostHeaderChip(printHostConnChip, 'PrintHost: verificando...');
+      setPrintHostHeaderChip(printHostPrinterChip, 'Etiquetadora: verificando...');
+      const reachable = await probePrintHostReachability();
+      const hhmm = new Date().toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
+      if (!reachable) {
+        setPrintHostHeaderChip(printHostConnChip, `PrintHost: desconectado (${hhmm})`, 'error');
+        setPrintHostHeaderChip(printHostPrinterChip, 'Etiquetadora: sin respuesta', 'error');
+        return;
+      }
+      setPrintHostHeaderChip(printHostConnChip, `PrintHost: conectado (${hhmm})`, 'ok');
+      refreshPrintHostPreviews();
+      try {
+        const state = await fetchBrokerState();
+        const printers = Object.values(state?.printers || {});
+        const ready = printers.filter(item => item && item.ok).length;
+        const total = printers.length || 3;
+        setPrintHostHeaderChip(printHostPrinterChip, `Etiquetadora: ${ready}/${total} listas`, ready === total ? 'ok' : ready > 0 ? 'warn' : 'error');
+      } catch (_) {
+        setPrintHostHeaderChip(printHostPrinterChip, 'Etiquetadora: lista para recibir', 'ok');
+      }
+    }
+
+    function tempState(row) {
+      if (!row || row.target === undefined) return 'sensor';
+      return Number(row.target || 0) > 0 ? 'on' : 'off';
+    }
+
+    function tempRowTemplate(def, row) {
+      return `<div class="temp-row"><div class="temp-name">${def.label}</div><div class="temp-state">${tempState(row)}</div><div class="temp-value">${formatTemp(row?.temperature)}</div><div class="temp-target">${def.hasTarget ? formatTemp(row?.target) : '--'}</div></div>`;
+    }
+
+    function normalizeHexColor(raw) {
+      if (!raw) return '#cfd8e4';
+      const c = String(raw).trim().replace('#','');
+      if (/^[0-9a-fA-F]{6}$/.test(c)) return `#${c}`;
+      if (/^[0-9a-fA-F]{3}$/.test(c)) return `#${c[0]}${c[0]}${c[1]}${c[1]}${c[2]}${c[2]}`;
+      return '#cfd8e4';
+    }
+
+    function contrastColor(hex) {
+      const c = hex.replace('#','');
+      const r = parseInt(c.slice(0,2), 16);
+      const g = parseInt(c.slice(2,4), 16);
+      const b = parseInt(c.slice(4,6), 16);
+      return (((r*299) + (g*587) + (b*114)) / 1000) >= 150 ? '#1a2533' : '#ffffff';
+    }
+
+    async function fetchJson(url, options={}, timeout=(HTTPS_PAGE ? 3500 : 8000)) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeout);
+      try {
+        const res = await fetch(url, { ...options, signal: ctrl.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function fetchSpoolmanProxy(path, timeout=(HTTPS_PAGE ? 2500 : 12000)) {
+      // En HTTPS consultamos proxies en paralelo para evitar espera acumulada por host caido.
+      if (HTTPS_PAGE) {
+        const requests = SPOOLMAN_PROXY_HOSTS.map(host =>
+          fetchJson(`${cameraBase(host)}/server/spoolman/proxy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ request_method: 'GET', path })
+          }, timeout)
+        );
+        try {
+          return await Promise.any(requests);
+        } catch (_) {
+          throw new Error('Spoolman proxy no disponible');
+        }
+      }
+
+      let lastError = null;
+      for (const host of SPOOLMAN_PROXY_HOSTS) {
+        try {
+          return await fetchJson(`${cameraBase(host)}/server/spoolman/proxy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ request_method: 'GET', path })
+          }, timeout);
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      throw lastError || new Error('Spoolman proxy no disponible');
+    }
+
+    function setModalStatus(el, msg, type='') {
+      if (!el) return;
+      el.className = `modal-status ${type}`.trim();
+      el.textContent = msg || '';
+    }
+
+    function openModal(el) {
+      if (el) el.classList.remove('hidden');
+    }
+
+    function closeModal(el) {
+      if (el) el.classList.add('hidden');
+    }
+
+    function closeAllSpoolModals() {
+      closeModal(spoolActionModal);
+      closeModal(spoolPickerModal);
+      closeModal(spoolScanModal);
+    }
+
+    function formatSpoolRow(spool) {
+      const f = spool.filament || {};
+      const material = f.material || 'Material';
+      const name = f.name || 'Sin nombre';
+      const vendor = (f.vendor && f.vendor.name) ? f.vendor.name : 'Sin fabricante';
+      const color = normalizeHexColor(f.color_hex);
+      const remG = Number(spool.remaining_weight || 0);
+      const usedTxt = spool.last_used ? new Date(spool.last_used).toLocaleString('es-MX') : 'N/D';
+      return {
+        id: Number(spool.id),
+        material,
+        name,
+        vendor,
+        color,
+        remKg: (remG / 1000).toFixed(3).replace(/\.000$/, ''),
+        usedTxt,
+        text: `#${spool.id} ${material} ${name} ${vendor}`.toLowerCase()
+      };
+    }
+
+    async function loadSpoolCatalog(force=false) {
+      if (spoolCatalog.length && !force) return spoolCatalog;
+      const spools = (await fetchSpoolmanProxy('/v1/spool', 14000)).result || [];
+      spoolCatalog = spools
+        .filter(sp => !sp.archived && Number(sp.remaining_weight || 0) > 0 && sp.filament)
+        .sort((a, b) => {
+          const la = new Date(a.last_used || a.registered || 0).getTime();
+          const lb = new Date(b.last_used || b.registered || 0).getTime();
+          return lb - la;
+        })
+        .map(formatSpoolRow);
+      return spoolCatalog;
+    }
+
+    function renderSpoolPickerRows(list) {
+      if (!spoolPickerList) return;
+      if (!list.length) {
+        spoolPickerList.innerHTML = '<div class="empty">No se encontraron carretes.</div>';
+        return;
+      }
+      spoolPickerList.innerHTML = list.map(item => `
+        <div class="picker-row" data-spool-id="${item.id}" role="button" tabindex="0">
+          <div class="picker-chip" style="background:${item.color};color:${contrastColor(item.color)}">${item.material.slice(0,2).toUpperCase()}</div>
+          <div>
+            <div class="picker-name">#${item.id} · ${item.name}</div>
+            <div class="picker-meta">${item.material} · ${item.vendor} · ${item.remKg} kg</div>
+          </div>
+          <div class="picker-meta">${item.usedTxt}</div>
+        </div>
+      `).join('');
+
+      spoolPickerList.querySelectorAll('.picker-row').forEach(row => {
+        const pick = async ev => {
+          ev.preventDefault();
+          const id = Number(row.getAttribute('data-spool-id'));
+          await assignSpoolToCurrentPrinter(id);
+        };
+        row.addEventListener('click', pick);
+        row.addEventListener('keydown', ev => {
+          if (ev.key === 'Enter' || ev.key === ' ') pick(ev);
+        });
+      });
+    }
+
+    async function assignSpoolToCurrentPrinter(spoolId) {
+      if (!currentSpoolCam) return;
+      const cam = currentSpoolCam;
+      setModalStatus(spoolPickerStatus, `Asignando carrete #${spoolId} a ${cam.id}...`);
+      setModalStatus(spoolScanStatus, `Asignando carrete #${spoolId} a ${cam.id}...`);
+      try {
+        await fetchJson(cam.idexSide ? '/proxy/idex/api/mounted-spools' : `${cameraBase(cam.ip)}/server/spoolman/spool_id`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cam.idexSide ? {side:cam.idexSide,spool_id:Number(spoolId)} : { spool_id: Number(spoolId) })
+        }, 12000);
+        setModalStatus(spoolActionStatus, `Carrete #${spoolId} montado en ${cam.id}.`, 'ok');
+        setModalStatus(spoolPickerStatus, `Carrete #${spoolId} montado correctamente.`, 'ok');
+        setModalStatus(spoolScanStatus, `Carrete #${spoolId} montado correctamente.`, 'ok');
+        await Promise.allSettled([
+          cam.idexSide ? window.refreshIdexMaterials?.() : fetchSpoolMaterial(cam)
+        ]);
+        stopSpoolScanner();
+        closeModal(spoolPickerModal);
+        closeModal(spoolScanModal);
+      } catch (_) {
+        setModalStatus(spoolPickerStatus, 'No se pudo montar el carrete en esta impresora.', 'error');
+        setModalStatus(spoolScanStatus, 'No se pudo montar el carrete en esta impresora.', 'error');
+      }
+    }
+
+    function extractSpoolIdFromQr(text) {
+      const raw = String(text || '').trim();
+      if (!raw) return null;
+      let m = raw.match(/#\s*(\d{1,5})/);
+      if (m) return Number(m[1]);
+      m = raw.match(/(?:spool|carrete|id)\s*[:#-]?\s*(\d{1,5})/i);
+      if (m) return Number(m[1]);
+      const all = raw.match(/\d{1,5}/g) || [];
+      if (!all.length) return null;
+      const catalogIds = new Set(spoolCatalog.map(s => s.id));
+      const found = all.map(Number).find(n => catalogIds.has(n));
+      return found || Number(all[0]);
+    }
+
+    async function stopSpoolScanner() {
+      if (scanLoopHandle) cancelAnimationFrame(scanLoopHandle);
+      scanLoopHandle = null;
+      if (scanStream) {
+        scanStream.getTracks().forEach(t => t.stop());
+      }
+      scanStream = null;
+      if (spoolScanVideo) spoolScanVideo.srcObject = null;
+    }
+
+    async function startSpoolScanner() {
+      if (!currentSpoolCam) return;
+      setModalStatus(spoolScanStatus, 'Solicitando acceso a camara...');
+      await loadSpoolCatalog();
+      if (!('mediaDevices' in navigator) || !navigator.mediaDevices.getUserMedia) {
+        setModalStatus(spoolScanStatus, 'Camara no compatible en este navegador.', 'error');
+        return;
+      }
+      try {
+        scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+        spoolScanVideo.srcObject = scanStream;
+        await spoolScanVideo.play();
+      } catch (_) {
+        setModalStatus(spoolScanStatus, 'No se pudo abrir la camara.', 'error');
+        return;
+      }
+
+      if (!('BarcodeDetector' in window)) {
+        setModalStatus(spoolScanStatus, 'La deteccion QR no esta disponible; usa Seleccionar carrete.', 'error');
+        return;
+      }
+
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      setModalStatus(spoolScanStatus, 'Escaneando QR...');
+
+      const loop = async () => {
+        if (!scanStream) return;
+        try {
+          const codes = await detector.detect(spoolScanVideo);
+          if (codes && codes.length) {
+            const value = codes[0].rawValue || '';
+            const spoolId = extractSpoolIdFromQr(value);
+            if (spoolId) {
+              setModalStatus(spoolScanStatus, `QR detectado: carrete #${spoolId}.`, 'ok');
+              await assignSpoolToCurrentPrinter(spoolId);
+              return;
+            }
+            setModalStatus(spoolScanStatus, 'QR detectado pero no se encontro numero de carrete.', 'error');
+          }
+        } catch (_) {}
+        scanLoopHandle = requestAnimationFrame(loop);
+      };
+      scanLoopHandle = requestAnimationFrame(loop);
+    }
+
+    async function openSpoolAction(cam) {
+      currentSpoolCam = cam;
+      spoolActionTitle.textContent = `Cambiar carrete · ${cam.id==='INTAMSYS'?'HT09':cam.id}`;
+      setModalStatus(spoolActionStatus, 'Elige escanear o seleccionar de la lista.');
+      openModal(spoolActionModal);
+    }
+    window.openIdexSpoolAction = side => openSpoolAction({id:side==='left'?'IDEX-E0':'IDEX-E1',idexSide:side});
+
+    async function openSpoolPicker() {
+      if (!currentSpoolCam) return;
+      spoolPickerTitle.textContent = `Seleccionar carrete · ${currentSpoolCam.id}`;
+      spoolPickerSearch.value = '';
+      setModalStatus(spoolPickerStatus, 'Cargando ultimos carretes usados...');
+      openModal(spoolPickerModal);
+      try {
+        const list = await loadSpoolCatalog();
+        renderSpoolPickerRows(list.slice(0, 60));
+        setModalStatus(spoolPickerStatus, 'Puedes buscar por numero de carrete (ej. 77).');
+      } catch (_) {
+        spoolPickerList.innerHTML = '<div class="empty">No se pudo consultar Spoolman.</div>';
+        setModalStatus(spoolPickerStatus, 'No se pudo cargar la lista de carretes.', 'error');
+      }
+    }
+
+    function filterSpoolPicker() {
+      const q = (spoolPickerSearch.value || '').trim().toLowerCase();
+      if (!q) {
+        renderSpoolPickerRows(spoolCatalog.slice(0, 60));
+        return;
+      }
+      const list = spoolCatalog.filter(item => item.text.includes(q) || String(item.id).includes(q));
+      renderSpoolPickerRows(list.slice(0, 60));
+    }
+
+    async function sendPrinterCommand(cam, script) {
+      return await fetchJson(`${cameraBase(cam.ip)}/printer/gcode/script`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ script })
+      }, 15000);
+    }
+
+    async function sendPrinterAction(cam, action) {
+      if (action === 'pause_print') {
+        return await fetchJson(`${cameraBase(cam.ip)}/printer/print/pause`, { method: 'POST' }, 15000);
+      }
+      if (action === 'cancel_print') {
+        return await fetchJson(`${cameraBase(cam.ip)}/printer/print/cancel`, { method: 'POST' }, 15000);
+      }
+      if (action === 'emergency_stop') {
+        return await fetchJson(`${cameraBase(cam.ip)}/printer/emergency_stop`, { method: 'POST' }, 15000);
+      }
+      throw new Error('Accion no soportada');
+    }
+
+    async function fetchTemperatures(ip) {
+      const query = TEMP_OBJECTS.map(item => encodeURIComponent(item.key)).join('&');
+      const data = await fetchJson(`${cameraBase(ip)}/printer/objects/query?${query}`, {}, HTTPS_PAGE ? 1200 : 8000);
+      return data?.result?.status || {};
+    }
+
+    function pickBestThumb(meta) {
+      const thumbs = Array.isArray(meta?.thumbnails) ? meta.thumbnails : [];
+      if (!thumbs.length) return null;
+      return thumbs.sort((a,b) => (b.width*b.height) - (a.width*a.height))[0];
+    }
+
+    async function resolveThumbUrl(ip, filename) {
+      const enc = encodeURIComponent(filename);
+      const meta = await fetchJson(`${cameraBase(ip)}/server/files/metadata?filename=${enc}`);
+      const best = pickBestThumb(meta.result);
+      return best ? `${cameraBase(ip)}/server/files/gcodes/${best.relative_path}` : null;
+    }
+
+    function testImage(url, timeout=(HTTPS_PAGE ? 900 : 2000)) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const timer = setTimeout(() => { img.src=''; reject(new Error('timeout')); }, timeout);
+        img.onload = () => { clearTimeout(timer); resolve(true); };
+        img.onerror = () => { clearTimeout(timer); reject(new Error('error')); };
+        img.src = `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}`;
+      });
+    }
+
+      async function attachCameraStream(cam) {
+        if (cam.maintenance) {
+          stopSnapshotRefresh(cam.id);
+          showCamMessage(cam.id, cam.maintenanceText || 'Mantenimiento.', `IP reservada: ${cam.ip}`);
+          return;
+        }
+
+        // HTTPS: snapshot inmediato para respuesta rapida y luego salto a stream vivo.
+        if (HTTPS_PAGE && cam.stream && cam.stream.length) {
+          const snapshotUrl = cam.stream[0];
+          showFeed(cam.id, `${snapshotUrl}${snapshotUrl.includes('?') ? '&' : '?'}_=${Date.now()}`);
+          startSnapshotRefresh(cam.id, snapshotUrl, 3000);
+
+          const liveCandidates = cam.stream.slice(1);
+          for (const url of liveCandidates) {
+            try {
+              await testImage(url, 1200);
+              stopSnapshotRefresh(cam.id);
+              showFeed(cam.id, url);
+              return;
+            } catch (_) {}
+          }
+          return;
+        }
+
+        for (const url of cam.stream) {
+          try {
+            await testImage(url);
+            stopSnapshotRefresh(cam.id);
+            showFeed(cam.id, url);
+            return;
+          } catch (_) {}
+        }
+        stopSnapshotRefresh(cam.id);
+        showCamMessage(cam.id, `No se pudo conectar a ${cam.id}.`, cam.stream[0]);
+      }
+
+      async function fetchPrintStats(ip) {
+        const data = await fetchJson(`${cameraBase(ip)}/printer/objects/query?print_stats&webhooks`, {}, HTTPS_PAGE ? 1200 : 8000);
+        return data?.result?.status?.print_stats || null;
+      }
+
+      async function fetchJobQueue(ip) {
+        const data = await fetchJson(`${cameraBase(ip)}/server/job_queue/status`, {}, HTTPS_PAGE ? 1200 : 8000);
+        return data?.result || { queued_jobs: [], queue_state: '' };
+      }
+
+      async function renderTemperatures(cam) {
+        const wrap = document.getElementById(`temps-${cam.id}`);
+        if (!wrap) return;
+        if (cam.maintenance) {
+          wrap.className = 'temps-empty';
+          wrap.textContent = 'Impresora fuera de linea temporalmente.';
+          return;
+        }
+        try {
+          const status = await fetchTemperatures(cam.ip);
+          wrap.className = 'temps-table';
+          wrap.innerHTML = TEMP_OBJECTS.map(def => tempRowTemplate(def, status[def.key])).join('');
+        } catch (_) {
+          wrap.className = 'temps-empty';
+          wrap.textContent = 'No se pudieron consultar temperaturas.';
+        }
+      }
+
+      function setControlStatus(camId, message, type='') {
+        const el = document.getElementById(`control-status-${camId}`);
+        if (!el) return;
+        el.className = `control-status ${type}`.trim();
+        el.textContent = message;
+      }
+
+      function confirmCancelPrint(cam) {
+        return new Promise(resolve => {
+          const dialog = document.createElement('dialog');
+          dialog.setAttribute('aria-label', `Cancelar impresión en ${cam.id}`);
+          dialog.style.cssText = 'max-width:420px;padding:24px;border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--ink);box-shadow:0 24px 60px #0006';
+          const title = document.createElement('h2');
+          title.textContent = `¿Cancelar la impresión en ${cam.id}?`;
+          title.style.cssText = 'font-size:20px;margin:0 0 12px';
+          const message = document.createElement('p');
+          message.textContent = 'Se detendrá el trabajo actual y no podrá reanudarse.';
+          message.style.cssText = 'line-height:1.5;margin:0 0 20px';
+          const actions = document.createElement('div');
+          actions.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap';
+          const back = document.createElement('button');
+          back.type = 'button'; back.className = 'control-btn'; back.textContent = 'Volver';
+          const cancel = document.createElement('button');
+          cancel.type = 'button'; cancel.className = 'control-btn danger'; cancel.textContent = 'Sí, cancelar impresión';
+          const finish = confirmed => { dialog.close(); dialog.remove(); resolve(confirmed); };
+          back.addEventListener('click', () => finish(false));
+          cancel.addEventListener('click', () => finish(true));
+          dialog.addEventListener('cancel', event => { event.preventDefault(); finish(false); });
+          actions.append(back, cancel); dialog.append(title, message, actions);
+          document.body.append(dialog); dialog.showModal(); back.focus();
+        });
+      }
+
+      async function handleControlClick(button) {
+        const cam = CAMERAS.find(item => item.id === button.dataset.printer);
+        if (!cam) return;
+        const cmd = button.dataset.cmd || '';
+        const action = button.dataset.action || '';
+        if (!cmd && !action) return;
+        if (cam.maintenance) {
+          setControlStatus(cam.id, 'Impresora fuera de linea temporalmente.', 'error');
+          return;
+        }
+        if (action === 'cancel_print') {
+          const ok = await confirmCancelPrint(cam);
+          if (!ok) return;
+        }
+        if (action === 'emergency_stop') {
+          const ok = confirm(`Parada de emergencia en ${cam.id}.\n\nEsto detendra la impresion inmediatamente.\n\nDeseas continuar?`);
+          if (!ok) return;
+        }
+        const card = document.getElementById(`card-${cam.id}`);
+        const buttons = [...card.querySelectorAll('.control-btn')];
+        buttons.forEach(item => item.disabled = true);
+        setControlStatus(cam.id, `Enviando: ${button.textContent}...`);
+        try {
+          if (action) {
+            await sendPrinterAction(cam, action);
+          } else {
+            await sendPrinterCommand(cam, cmd);
+          }
+          setControlStatus(cam.id, `Comando ejecutado: ${button.textContent}.`, 'ok');
+          await Promise.allSettled([
+            renderLiveStatus(cam),
+            renderJobQueue(cam),
+            renderTemperatures(cam)
+          ]);
+        } catch (_) {
+          setControlStatus(cam.id, `No se pudo ejecutar: ${button.textContent}.`, 'error');
+        } finally {
+          buttons.forEach(item => item.disabled = false);
+        }
+      }
+
+      function bindControls(cam) {
+        const card = document.getElementById(`card-${cam.id}`);
+        if (!card) return;
+        card.querySelectorAll('.control-btn').forEach(button => {
+          button.addEventListener('click', ev => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            handleControlClick(button);
+          });
+        });
+      }
+
+      function queueJobLabel(job) {
+        return job?.filename || job?.name || job?.path || job?.job_name || 'Trabajo en cola';
+      }
+
+      async function startPrintFromGcode(cam, filename) {
+        return await fetchJson(`${cameraBase(cam.ip)}/printer/print/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename })
+        }, 15000);
+      }
+
+      function isPrintingState(state) {
+        return ['printing','paused'].includes((state || '').toLowerCase());
+      }
+
+      async function renderLiveStatus(cam) {
+        const box = document.getElementById(`live-${cam.id}`);
+        if (!box) return;
+        if (cam.maintenance) {
+          setHeaderStatus(cam.id, 'maintenance', 'Falla temporal');
+          box.textContent = 'Impresora fuera de linea temporalmente.';
+          return;
+        }
+        try {
+          const ps = await fetchPrintStats(cam.ip);
+          const state = (ps?.state || 'unknown').toLowerCase();
+          const file = ps?.filename || '';
+          if (isPrintingState(state) && file) {
+            setHeaderStatus(cam.id, 'printing', 'Imprimiendo');
+            let thumb = null;
+            try { thumb = await resolveThumbUrl(cam.ip, file); } catch (_) {}
+            if (!thumb) thumb = makeThumbPlaceholder(file);
+            box.className = 'live-job';
+            box.innerHTML = `<img class="live-thumb" src="${thumb}" alt="Trabajo activo ${file}"><div class="live-file"><strong>Archivo activo:</strong><br>${file}</div>`;
+            try {
+              const response=await fetchJson(`${cameraBase(cam.ip)}/printer/objects/query?virtual_sdcard`);
+              const progress=response.result?.status?.virtual_sdcard?.progress;
+              if(Number.isFinite(progress)) {
+                const percent=Math.max(0,Math.min(100,progress*100));
+                const meter=document.createElement('div');meter.style.gridColumn='1 / -1';
+                const bar=document.createElement('progress');bar.max=100;bar.value=percent;bar.style.width='100%';bar.setAttribute('aria-label','Avance de impresión');
+                meter.append(bar,document.createTextNode(percent.toFixed(1)+' %'));box.append(meter);
+              }
+            } catch (_) {}
+            return;
+          }
+          setHeaderStatus(cam.id, 'resting', 'Descansando');
+          box.className = 'live-empty';
+          box.textContent = 'Sin impresion activa.';
+        } catch (_) {
+          setHeaderStatus(cam.id, 'offline', 'Sin estado');
+          box.className = 'live-empty';
+          box.textContent = 'No se pudo consultar estado de impresion.';
+        }
+      }
+
+      async function renderJobQueue(cam) {
+        const box = document.getElementById(`queue-${cam.id}`);
+        const count = document.getElementById(`queue-count-${cam.id}`);
+        if (!box || !count) return;
+        if (cam.maintenance) {
+          count.textContent = '0';
+          box.className = 'queue-empty';
+          box.textContent = 'Impresora fuera de linea temporalmente.';
+          return;
+        }
+        try {
+          const queue = await fetchJobQueue(cam.ip);
+          const jobs = Array.isArray(queue.queued_jobs) ? queue.queued_jobs : [];
+          count.textContent = String(jobs.length);
+          if (!jobs.length) {
+            box.className = 'queue-empty';
+            box.textContent = `Sin trabajos en cola. Estado: ${queue.queue_state || 'unknown'}.`;
+            return;
+          }
+          box.className = '';
+          box.innerHTML = `<ul class="queue-list">${jobs.map(job => `<li>${queueJobLabel(job)}</li>`).join('')}</ul>`;
+        } catch (_) {
+          count.textContent = '?';
+          box.className = 'queue-empty';
+          box.textContent = 'No se pudo consultar la cola de trabajos.';
+        }
+      }
+
+    async function fetchRecentWithThumbs(ip, limit=3) {
+      // Damos mas tiempo al listado y un reintento para fallos transitorios.
+      let listJson = null;
+      let all = [];
+      try {
+        listJson = await fetchJson(`${cameraBase(ip)}/server/files/list?root=gcodes`, {}, HTTPS_PAGE ? 12000 : 8000);
+      } catch (_) {
+        await new Promise(r => setTimeout(r, 250));
+        try {
+          listJson = await fetchJson(`${cameraBase(ip)}/server/files/list?root=gcodes`, {}, HTTPS_PAGE ? 12000 : 8000);
+        } catch (_) {
+          listJson = null;
+        }
+      }
+
+      if (listJson && Array.isArray(listJson.result)) {
+        all = (listJson.result || [])
+          .filter(x => x.path && x.path.toLowerCase().endsWith('.gcode'))
+          .sort((a,b) => (b.modified || 0) - (a.modified || 0));
+      }
+
+      // Fallback ligero: historial de impresiones cuando lista de archivos no responde.
+      if (!all.length) {
+        try {
+          const history = await fetchJson(`${cameraBase(ip)}/server/history/list?limit=20`, {}, HTTPS_PAGE ? 3500 : 6000);
+          const jobs = history?.result?.jobs || [];
+          const names = [];
+          for (const j of jobs) {
+            const n = String(j?.filename || '').trim();
+            if (!n || !n.toLowerCase().endsWith('.gcode')) continue;
+            if (!names.includes(n)) names.push(n);
+            if (names.length >= Math.max(limit, 3)) break;
+          }
+          all = names.map((n, idx) => ({ path: n, modified: (Date.now()/1000) - idx }));
+        } catch (_) {}
+      }
+
+      // Siempre mostramos los ultimos G-code aunque falle la miniatura.
+      const base = all.slice(0, Math.max(limit, 3));
+      const withThumb = await Promise.all(base.map(async (file) => {
+        try {
+          const thumbUrl = await resolveThumbUrl(ip, file.path);
+          return { name:file.path, thumbUrl };
+        } catch (_) {
+          return { name:file.path, thumbUrl:null };
+        }
+      }));
+
+      return withThumb.slice(0, limit);
+    }
+
+    function paintGcodes(cam, wrap, items) {
+      wrap.innerHTML = '';
+      items.forEach((it, idx) => wrap.insertAdjacentHTML('beforeend', gcodeTemplate(cam.id, idx, it.name)));
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        const img = document.getElementById(`thumb-${cam.id}-${i}`);
+        const st = document.getElementById(`thumbst-${cam.id}-${i}`);
+        if (!img || !st) continue;
+
+        if (it.thumbUrl) {
+          img.onerror = () => {
+            img.onerror = null;
+            img.src = makeThumbPlaceholder(it.name);
+            st.textContent = 'Sin miniatura embebida';
+          };
+          img.src = `${it.thumbUrl}${it.thumbUrl.includes('?') ? '&' : '?'}_=${Date.now()}`;
+          st.textContent = 'Miniatura real';
+        } else {
+          img.src = makeThumbPlaceholder(it.name);
+          st.textContent = 'Sin miniatura embebida';
+        }
+      }
+
+      wrap.querySelectorAll('.gcode-card.clickable').forEach(card => {
+        const filename = card.getAttribute('data-file') || '';
+        const triggerPrint = async ev => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          if (!/\.gcode$/i.test(filename)) return;
+          if (cam.maintenance) {
+            setControlStatus(cam.id, 'Impresora fuera de linea temporalmente.', 'error');
+            return;
+          }
+          const ok = confirm(`Iniciar impresion en ${cam.id} con:\n${filename}?`);
+          if (!ok) return;
+          setControlStatus(cam.id, `Enviando trabajo: ${safeName(filename)}...`);
+          try {
+            await startPrintFromGcode(cam, filename);
+            setControlStatus(cam.id, `Impresion iniciada: ${safeName(filename)}.`, 'ok');
+            await Promise.allSettled([
+              renderLiveStatus(cam),
+              renderJobQueue(cam)
+            ]);
+          } catch (_) {
+            setControlStatus(cam.id, `No se pudo iniciar: ${safeName(filename)}.`, 'error');
+          }
+        };
+        card.addEventListener('click', triggerPrint);
+        card.addEventListener('keydown', ev => {
+          if (ev.key === 'Enter' || ev.key === ' ') triggerPrint(ev);
+        });
+      });
+    }
+
+    async function renderGcodes(cam) {
+      const wrap = document.getElementById(`gcode-${cam.id}`);
+      if (!wrap) return;
+      const cacheKey = `gcodes_recent_${cam.id}`;
+
+      let cachedItems = [];
+      try {
+        const cachedRaw = localStorage.getItem(cacheKey);
+        const cached = cachedRaw ? JSON.parse(cachedRaw) : [];
+        if (Array.isArray(cached) && cached.length) {
+          cachedItems = cached.slice(0, 3).map(x => ({ name: x.name || 'G-code', thumbUrl: null }));
+        }
+      } catch (_) {}
+
+      if (cachedItems.length) {
+        paintGcodes(cam, wrap, cachedItems);
+      } else {
+        paintGcodes(cam, wrap, ['Cargando G-code 1','Cargando G-code 2','Cargando G-code 3'].map(name => ({ name, thumbUrl: null })));
+      }
+
+      let items = [];
+      try {
+        items = await fetchRecentWithThumbs(cam.ip, 3);
+      } catch (_) {
+        items = [];
+      }
+
+      if (!items.length) {
+        if (!cachedItems.length) {
+          paintGcodes(cam, wrap, ['Sin datos de Moonraker 1','Sin datos de Moonraker 2','Sin datos de Moonraker 3'].map(name => ({ name, thumbUrl: null })));
+        }
+        return;
+      }
+
+      try {
+        const save = items.map(x => ({ name: x.name, thumbUrl: null }));
+        localStorage.setItem(cacheKey, JSON.stringify(save));
+      } catch (_) {}
+
+      paintGcodes(cam, wrap, items);
+    }
+
+    async function fetchSpoolMaterial(cam) {
+      const thumbEl = document.getElementById(`spool-thumb-${cam.id}`);
+      const textEl = document.getElementById(`spool-text-${cam.id}`);
+      if (!thumbEl || !textEl) return;
+      const cacheKey = `spool_material_${cam.id}`;
+
+      function paint(item) {
+        const color = normalizeHexColor(item.color || '#e1e7ef');
+        const initials = (item.initials || '??').slice(0, 2).toUpperCase();
+        thumbEl.style.color = color;
+        thumbEl.innerHTML = '<svg class="spool-art" viewBox="0 0 100 100" role="img" aria-label="Carrete gris oscuro con tres ventanas del color del filamento"><circle cx="50" cy="50" r="48" fill="#333333"/>'+[0,120,240].map(angle=>`<g transform="rotate(${angle} 50 50)"><path d="M29 13 Q50 1 71 13 Q72 14 70 17 L59 37 Q50 44 41 37 L30 17 Q28 14 29 13Z" fill="currentColor"/><path d="M39 31 Q50 24 61 31 L56 39 Q50 43 44 39Z" fill="#bfbfbf"/></g>`).join('')+'</svg>';
+        textEl.replaceChildren();
+        const title=document.createElement('strong');title.textContent=item.spoolId?'E0 · EXTRUSOR':item.text||'No disponible';title.style.display='block';title.style.marginBottom='7px';textEl.append(title);
+        if(item.spoolId){
+          const identity=document.createElement('div');identity.textContent=`#${item.spoolId} · ${item.vendor?item.vendor+' ':''}${item.name||'Material'}`;
+          const remaining=document.createElement('small');remaining.textContent=`${item.material||'—'} · ${Number.isFinite(item.remainingWeight)?Math.round(item.remainingWeight)+' g restantes':'Peso sin dato'}`;remaining.style.display='block';remaining.style.marginTop='6px';remaining.style.color='#60758a';textEl.append(identity,remaining);
+        }
+        textEl.parentElement.style.borderLeft='5px solid '+color;
+      }
+
+      if (cam.maintenance) {
+        paint({ color: '#e1e7ef', initials: 'X', text: 'Sin conexion con impresora' });
+        return;
+      }
+
+      let hadCache = false;
+      try {
+        const raw = localStorage.getItem(cacheKey);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          if (cached && typeof cached === 'object') {
+            paint(cached);
+            hadCache = true;
+          }
+        }
+      } catch (_) {}
+
+      try {
+        const st = await fetchJson(`${cameraBase(cam.ip)}/server/spoolman/status`, {}, HTTPS_PAGE ? 2500 : 6000);
+        const spoolId = st?.result?.spool_id;
+        if (!spoolId) {
+          const noSpool = { color: '#e1e7ef', initials: '?', text: 'Sin spool asignado' };
+          paint(noSpool);
+          try { localStorage.setItem(cacheKey, JSON.stringify(noSpool)); } catch (_) {}
+          return;
+        }
+
+        const details = await fetchJson(`${cameraBase(cam.ip)}/server/spoolman/proxy`, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ request_method:'GET', path:`/v1/spool/${spoolId}` })
+        }, HTTPS_PAGE ? 3000 : 7000);
+
+        const filament = details?.result?.filament || {};
+        const mat = filament.material || 'Material N/D';
+        const name = filament.name || 'Filamento N/D';
+        const item = {
+          spoolId,
+          vendor: filament.vendor?.name || '',
+          name,
+          material: mat,
+          remainingWeight: details?.result?.remaining_weight,
+          color: normalizeHexColor(filament.color_hex),
+          initials: (mat || 'M').slice(0, 2).toUpperCase(),
+          text: `${mat} - ${name}`
+        };
+        paint(item);
+        try { localStorage.setItem(cacheKey, JSON.stringify(item)); } catch (_) {}
+      } catch (_) {
+        if (!hadCache) {
+          paint({ color: '#e1e7ef', initials: '!', text: 'No disponible (Spoolman)' });
+        }
+      }
+    }
+
+    async function renderSpoolmanInventory() {
+      const CACHE_KEY = 'inventory_compact_cache_v1';
+
+      function renderInventoryView(items, totals, avgEfficiency, bobinasCountOverride=null) {
+        const bobinasCount = bobinasCountOverride ?? totals.spools ?? 0;
+        inventorySummary.innerHTML = [
+          `<span class="inventory-chip">Filamentos activos: ${items.length}</span>`,
+          `<span class="inventory-chip">Bobinas total: ${bobinasCount}</span>`,
+          `<span class="inventory-chip">Inventario total: ${totals.kg.toFixed(2)} kg</span>`
+        ].join('');
+
+        if (!items.length) {
+          inventoryGrid.innerHTML = '<div class="inventory-empty">No hay filamentos con remanente disponible.</div>';
+          return;
+        }
+        inventoryGrid.innerHTML = compactInventoryTemplate(items, totals, avgEfficiency);
+      }
+
+      // Render cache immediately so the user does not wait on network timeouts.
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          if (cached && Array.isArray(cached.items) && cached.totals) {
+            renderInventoryView(cached.items, cached.totals, Number(cached.avgEfficiency || 0), Number(cached.totalSpools || cached.activeCount || cached.totals?.spools || 0));
+          }
+        } else {
+          inventorySummary.innerHTML = '<span class="inventory-chip">Consultando Spoolman...</span>';
+          inventoryGrid.innerHTML = '<div class="inventory-empty">Cargando inventario agregado...</div>';
+        }
+      } catch (_) {
+        inventorySummary.innerHTML = '<span class="inventory-chip">Consultando Spoolman...</span>';
+        inventoryGrid.innerHTML = '<div class="inventory-empty">Cargando inventario agregado...</div>';
+      }
+
+      try {
+        const spools = (await fetchSpoolmanProxy('/v1/spool', 2500)).result || [];
+        const active = spools.filter(spool => !spool.archived && Number(spool.remaining_weight || 0) > 0 && spool.filament);
+        const groups = new Map();
+        for (const spool of active) {
+          const filament = spool.filament || {};
+          const material = String(filament.material || 'Material').trim() || 'Material';
+          const name = String(filament.name || '').trim();
+          const color = normalizeHexColor(filament.color_hex);
+          const key = `${material.toUpperCase()}|${name.toUpperCase()}|${color}`;
+          if (!groups.has(key)) {
+            groups.set(key, {
+              material,
+              name,
+              color,
+              spools: 0,
+              remainingG: 0,
+              remainingM: 0,
+              usedG: 0
+            });
+          }
+          const row = groups.get(key);
+          row.spools += 1;
+          row.remainingG += Number(spool.remaining_weight || 0);
+          row.remainingM += Number(spool.remaining_length || 0) / 1000;
+          row.usedG += Number(spool.used_weight || spool.consumed_weight || 0);
+        }
+
+        const items = Array.from(groups.values())
+          .map(item => ({
+            ...item,
+            label: item.name ? `${item.material} · ${item.name}` : item.material,
+            contrast: contrastColor(item.color),
+            kg: (item.remainingG / 1000).toFixed(3).replace(/\.000$/, ''),
+            km: (item.remainingM / 1000).toFixed(2).replace(/\.00$/, ''),
+            efficiency: (item.usedG + item.remainingG) > 0 ? (item.usedG / (item.usedG + item.remainingG)) * 100 : 0
+          }))
+          .sort((a, b) => b.remainingG - a.remainingG);
+
+        const totals = {
+          kg: active.reduce((sum, spool) => sum + Number(spool.remaining_weight || 0), 0) / 1000,
+          km: active.reduce((sum, spool) => sum + Number(spool.remaining_length || 0), 0) / 1000000,
+          spools: spools.length
+        };
+        const totalUsedG = active.reduce((sum, spool) => sum + Number(spool.used_weight || spool.consumed_weight || 0), 0);
+        const totalRemainingG = active.reduce((sum, spool) => sum + Number(spool.remaining_weight || 0), 0);
+        const avgEfficiency = (totalUsedG + totalRemainingG) > 0 ? (totalUsedG / (totalUsedG + totalRemainingG)) * 100 : 0;
+
+        renderInventoryView(items, totals, avgEfficiency, spools.length);
+        updateSpoolmanServiceCard(true, spools.length, active.length);
+
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({
+            ts: Date.now(),
+            items,
+            totals,
+            avgEfficiency,
+            totalSpools: spools.length
+          }));
+        } catch (_) {}
+      } catch (_) {
+        const hadCache = (() => {
+          try {
+            return !!localStorage.getItem(CACHE_KEY);
+          } catch (_) {
+            return false;
+          }
+        })();
+        if (!hadCache) {
+          inventorySummary.innerHTML = '<span class="inventory-chip">Spoolman no disponible</span>';
+          inventoryGrid.innerHTML = '<div class="inventory-empty">No se pudo consultar Spoolman por el proxy de Moonraker.</div>';
+        }
+        updateSpoolmanServiceCard(false, 0, 0);
+      }
+    }
+
+    function bindCardNavigation(cam) {
+      const card = document.getElementById(`card-${cam.id}`);
+      if (!card) return;
+      const openMainsail = () => { window.location.href = mainsailDirectUrl(cam.ip); };
+      card.addEventListener('click', ev => {
+        if (ev.target.closest('a,button,input,textarea,select,[role="button"]')) return;
+        openMainsail();
+      });
+      card.addEventListener('keydown', ev => {
+        if (ev.target.closest('[role="button"],button,input,select,a')) return;
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          openMainsail();
+        }
+      });
+    }
+
+    function bindSpoolSelector(cam) {
+      const el = document.getElementById(`spool-${cam.id}`);
+      if (!el) return;
+      const open = ev => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        openSpoolAction(cam);
+      };
+      el.addEventListener('click', open);
+      el.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter' || ev.key === ' ') open(ev);
+      });
+    }
+
+    CAMERAS.forEach(cam => {
+      grid.insertAdjacentHTML('beforeend', cardTemplate(cam));
+      bindCardNavigation(cam);
+      bindControls(cam);
+      bindSpoolSelector(cam);
+    });
+
+    document.querySelectorAll('[data-close]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-close');
+        const modal = document.getElementById(id);
+        if (modal) closeModal(modal);
+        if (id === 'spool-scan-modal') stopSpoolScanner();
+      });
+    });
+
+    spoolActionModal.addEventListener('click', ev => {
+      if (ev.target === spoolActionModal) closeModal(spoolActionModal);
+    });
+    spoolPickerModal.addEventListener('click', ev => {
+      if (ev.target === spoolPickerModal) closeModal(spoolPickerModal);
+    });
+    spoolScanModal.addEventListener('click', ev => {
+      if (ev.target === spoolScanModal) {
+        stopSpoolScanner();
+        closeModal(spoolScanModal);
+      }
+    });
+
+    document.getElementById('spool-action-pick').addEventListener('click', async () => {
+      closeModal(spoolActionModal);
+      await openSpoolPicker();
+    });
+
+    document.getElementById('spool-action-scan').addEventListener('click', async () => {
+      if (!currentSpoolCam) return;
+      closeModal(spoolActionModal);
+
+      // El dashboard puede estar dentro de /laboratorio del portal. En ese
+      // caso el escaner debe tomar toda la ventana, no solo el iframe.
+      const printer = encodeURIComponent(currentSpoolCam.id);
+      const embeddedInPortal = window.top !== window.self;
+      const returnUrl = embeddedInPortal
+        ? 'http://192.0.2.10:8800/laboratorio'
+        : 'http://192.0.2.10:8788/index.html';
+      const ret = encodeURIComponent(returnUrl);
+      const scanUrl = `https://laboratorio-de-prototipado.taile2eaca.ts.net/spool-scan-https.html?printer=${printer}&return=${ret}`;
+      if (embeddedInPortal) {
+        window.top.location.href = scanUrl;
+      } else {
+        window.location.href = scanUrl;
+      }
+    });
+
+    spoolPickerSearch.addEventListener('input', filterSpoolPicker);
+    spoolPickerSearch.addEventListener('keydown', async ev => {
+      if (ev.key !== 'Enter') return;
+      const text = (spoolPickerSearch.value || '').trim();
+      if (!text) return;
+      const onlyNum = text.match(/^\d{1,5}$/);
+      if (onlyNum) {
+        await assignSpoolToCurrentPrinter(Number(onlyNum[0]));
+      }
+    });
+
+    document.getElementById('spool-scan-stop').addEventListener('click', async () => {
+      await stopSpoolScanner();
+      setModalStatus(spoolScanStatus, 'Camara detenida.');
+    });
+
+    function bootCameraFast(cam, idx) {
+      // Primera pasada: priorizar bloques solicitados por el usuario.
+      attachCameraStream(cam);
+      runStartupTask(`live-${cam.id}`, () => renderLiveStatus(cam));
+
+      // Material asignado: cargar muy temprano.
+      const matDelay = 150 + (idx * 150);
+      setTimeout(() => {
+        runStartupTask(`material-${cam.id}`, () => fetchSpoolMaterial(cam));
+      }, matDelay);
+
+      // Estado secundario diferido para no competir con material/G-code.
+      const delay = 1300 + (idx * 450);
+      setTimeout(() => {
+        runStartupTask(`tempsqueue-${cam.id}`, async () => {
+          await Promise.allSettled([
+            renderTemperatures(cam),
+            renderJobQueue(cam)
+          ]);
+        });
+      }, delay);
+
+      // Ultimos G-code: se adelanta y pinta cache al instante.
+      const gcodeDelay = 900 + (idx * 250);
+      setTimeout(() => {
+        runStartupTask(`gcode-${cam.id}`, () => renderGcodes(cam));
+      }, gcodeDelay);
+    }
+
+    const SHARE_SERVICE_URL = '';
+    const shareModal = document.getElementById('share-modal');
+    const shareUrl = document.getElementById('share-url');
+    const shareStatus = document.getElementById('share-status');
+    document.getElementById('share-close').addEventListener('click', () => closeModal(shareModal));
+    document.addEventListener('click', ev => {
+      const ups = ev.target.closest('[data-ups-link]');
+      if (!ups) return;
+      window.location.href = ups.getAttribute('data-ups-link');
+    });
+    document.getElementById('share-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(shareUrl.value); shareStatus.textContent = 'Liga copiada.'; shareStatus.className = 'modal-status ok'; } catch (_) { shareUrl.select(); } });
+    document.addEventListener('click', async ev => { const btn = ev.target.closest('[data-share]'); if (!btn) return; btn.disabled = true; btn.textContent = 'Generando…'; shareUrl.value = ''; shareStatus.textContent = 'Validando impresión en curso…'; shareStatus.className = 'modal-status'; openModal(shareModal); try { const r = await fetch(`/api/shares`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({printer:btn.dataset.share}) }); const d = await r.json(); if (!r.ok) throw new Error(d.error || 'No se pudo generar la liga'); const url = d.share_url || `/share/${d.token}`; shareUrl.value = url; shareStatus.textContent = 'Lista; se mantiene mientras la impresión siga activa.'; shareStatus.className = 'modal-status ok'; } catch (e) { shareStatus.textContent = e.message; shareStatus.className = 'modal-status error'; } finally { btn.disabled = false; btn.textContent = btn.closest('.idex-share-section') ? 'Generar liga para compartir' : 'Compartir'; } });
+
+    CAMERAS.forEach((cam) => {
+      registerStartupTask(`live-${cam.id}`);
+      registerStartupTask(`material-${cam.id}`);
+      registerStartupTask(`tempsqueue-${cam.id}`);
+      registerStartupTask(`gcode-${cam.id}`);
+    });
+    registerStartupTask('printhost');
+    registerStartupTask('labhttp');
+    registerStartupTask('ups-se01');
+    registerStartupTask('ups-se02');
+    registerStartupTask('ups-ma01');
+
+    CAMERAS.forEach((cam, idx) => {
+      bootCameraFast(cam, idx);
+    });
+
+    // Diferimos paneles pesados para priorizar aparicion de tarjetas de impresora.
+    setTimeout(() => {
+      runStartupTask('printhost', async () => {
+        await Promise.allSettled([
+          renderPrintHost(),
+          updatePrintHostBannerStatus()
+        ]);
+      });
+    }, HTTPS_PAGE ? 1200 : 0);
+    setInterval(updatePrintHostBannerStatus, 20000);
+
+
+    setTimeout(() => {
+      runStartupTask('labhttp', () => checkLaboratorioHttpStatus());
+    }, HTTPS_PAGE ? 1500 : 0);
+    setInterval(checkLaboratorioHttpStatus, 30000);
+
+    setTimeout(() => {
+      runStartupTask('ups-se01', () => renderUpsStatus('SE01'));
+      runStartupTask('ups-se02', () => renderUpsStatus('SE02'));
+      runStartupTask('ups-ma01', () => renderUpsStatus('MA01'));
+    }, HTTPS_PAGE ? 1700 : 0);
+    setInterval(() => { renderUpsStatus('SE01'); renderUpsStatus('SE02'); renderUpsStatus('MA01'); }, 15000);
+  </script>
+<script src="/idex-card.js?v=20261023"></script>
+<script src="/intamsys-v2.js?v=20261102-status"></script>
+<script src="/card-order.js?v=20261023"></script>
+<script src="/laboratorio-layout.js?v=20261102-status"></script>
+<script src="/cleanup-panel.js?v=20261029"></script>
+<script src="/plate-chooser.js?v=20261101-system2"></script><script src="/platelink-cards.js?v=20261101"></script></body>
+</html>

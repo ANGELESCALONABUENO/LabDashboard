@@ -1,0 +1,46 @@
+(() => {
+  const top=document.querySelector('.top'),heading=top.querySelector('h1');heading.textContent='El laboratorio, de un vistazo.';
+  const eyebrow=document.createElement('div');eyebrow.className='proposal-eyebrow';eyebrow.textContent='inMateriis / Operación';top.prepend(eyebrow);
+  const topLine=document.createElement('div');topLine.className='proposal-topline';heading.before(topLine);topLine.append(heading);topLine.insertAdjacentHTML('beforeend','<div class="proposal-toolbar"><span class="proposal-pill">Datos en vivo</span></div>');
+  top.insertAdjacentHTML('beforeend','<div class="proposal-caption">Todas tus impresoras. Un solo lugar para seguir cada trabajo.</div>');
+  const grid=document.getElementById('grid');grid.insertAdjacentHTML('beforebegin','<div class="proposal-stats"><span class="proposal-stat"><strong id="proposal-total">5</strong> equipos</span><span class="proposal-stat"><strong id="proposal-running">—</strong> trabajando</span><span class="proposal-stat"><strong id="proposal-idle">—</strong> disponibles</span><span class="proposal-stat"><strong id="proposal-alerts">—</strong> por revisar</span><span class="proposal-sort">↓ Último trabajo recibido primero</span></div><div class="proposal-preview-note">PROPUESTA · Datos reales, controles sin envío. Para operar una impresora, usa «Abrir panel».</div><div class="proposal-filter"><button type="button" class="active" data-filter="all">Todos los equipos</button><button type="button" data-filter="running">En trabajo</button><button type="button" data-filter="attention">Por revisar</button></div>');
+  const timelineLink=document.createElement('a');timelineLink.href='./timeline.html';timelineLink.textContent='Timeline · Horas de salida';timelineLink.title='Ver horarios estimados, historial y cola de las cinco impresoras';timelineLink.style.cssText='margin-left:auto;display:inline-flex;align-items:center;text-decoration:none;border:1px solid var(--p-line);border-radius:7px;background:var(--p-panel);color:var(--p-accent);font-size:11px;font-weight:700;padding:8px 12px';document.querySelector('.proposal-filter').append(timelineLink);document.querySelector('.proposal-filter').style.flexWrap='wrap';
+  document.querySelector('.proposal-preview-note')?.remove();
+  grid.insertAdjacentHTML('afterend','<div id="proposal-empty" hidden style="padding:40px;text-align:center;color:var(--p-muted);border:1px dashed var(--p-line);border-radius:12px">No hay equipos en esta categoría.</div><div class="proposal-bottom">Laboratorio de prototipado · inMateriis</div>');
+  const definitions=[['card-SE01','SE01','http://192.0.2.11/'],['card-SE02','SE02','http://192.0.2.12/'],['card-MA01','MA01','http://192.0.2.13/'],['idex-card','IDEX','http://192.0.2.10:8811/'],['intamsys-card','INTAMSYS','http://192.0.2.16/']];
+  function fold(card,section,label,idex=false){if(!section||section.closest('details'))return;const details=document.createElement('details');details.className='proposal-details'+(idex?' idex-details':'');const summary=document.createElement('summary');summary.textContent=label;details.append(summary);section.before(details);details.append(section);details.addEventListener('click',event=>{if(event.target.closest('summary'))event.stopPropagation();});details.addEventListener('keydown',event=>{if(event.target.closest('summary'))event.stopPropagation();});return details;}
+  definitions.forEach(([id,name,url])=>{const card=document.getElementById(id);if(!card)return;
+    card.dataset.proposalName=name;
+    if(!card.querySelector('.share-btn')){const button=document.createElement('button');button.type='button';button.className='share-btn';button.dataset.share=name;button.textContent='Compartir';const header=card.querySelector('.cam-head-actions,.idex-header');if(header)header.insertBefore(button,header.firstChild);}
+    const share=card.querySelector('.share-btn');if(share){share.textContent='Compartir';share.title='Generar liga de la impresión en curso';share.setAttribute('aria-label','Compartir impresión de '+(name==='INTAMSYS'?'HT09':name));}
+    // Card body no longer navigates accidentally. Explicit links still work.
+    card.addEventListener('click',event=>{if(!event.target.closest('a,button,input,select,summary,[role="button"]'))event.stopImmediatePropagation();},true);
+    card.addEventListener('keydown',event=>{if(event.target===card)event.stopImmediatePropagation();},true);
+    if(name==='IDEX'){
+      const header=card.querySelector('.idex-header'),state=card.querySelector('.idex-status');
+      const actions=document.createElement('div');actions.className='cam-head-actions';header.append(actions);actions.append(share);
+      const badge=document.createElement('span');badge.className='badge';actions.append(badge);
+      function updateBadge(){const text=state.textContent.split(' · ')[0];badge.textContent=text;badge.className='badge '+(/IMPRIM|REANUD|PROCESS/i.test(text)?'printing':/PAUS|ERROR|DETEN/i.test(text)?'offline':'resting')}
+      new MutationObserver(updateBadge).observe(state,{childList:true,characterData:true,subtree:true});updateBadge();
+      const jobSection=state.parentElement;const title=document.createElement('div');title.className='live-title';title.textContent='Estado de impresión';jobSection.prepend(title);
+      const materialTitle=document.createElement('div');materialTitle.className='live-title';materialTitle.textContent='Material asignado · Spoolman';card.querySelector('.idex-materials').before(materialTitle);
+      const sharing=document.createElement('section');sharing.className='idex-share-section';sharing.style.cssText='padding:14px 16px;border-top:1px solid #70303c';
+      sharing.innerHTML='<p style="margin:0 0 10px;font-size:12px">Comparte la cámara GoPro, el avance y los materiales de esta impresión. Liga temporal de solo lectura, sin controles.</p><button type="button" class="share-btn" data-share="IDEX">Generar liga para compartir</button>';
+      card.append(sharing);fold(card,sharing,'Compartir impresión en vivo',true);
+      const sections=[...card.querySelectorAll('.idex-body>.idex-section')];
+      for(const section of sections){const title=section.querySelector('h3')?.textContent||'';if(title.includes('TEMPERATURAS')){section.classList.add('proposal-idex-temps');section.style.cssText='padding:12px 16px';card.querySelector('.idex-materials').after(section);}else fold(card,section,title.includes('COLA')?'Cola de trabajos':title.includes('MACROS')?'Controles y macros':'Archivos recientes',true);}
+    }else{
+      fold(card,card.querySelector('.ups-card'),'Energía y autonomía');fold(card,card.querySelector('.queue'),'Cola de trabajos');fold(card,card.querySelector('.controls'),'Controles y macros');fold(card,card.querySelector('.gcode'),'Archivos recientes');
+      // Bring essential temperatures above secondary details.
+      const temps=card.querySelector('.temps'),material=card.querySelector('.cam-material');if(temps&&material)material.after(temps);
+    }
+    const footer=document.createElement('div');footer.className='proposal-footer';const link=document.createElement('a');link.className='proposal-open';link.href=url;link.target='_blank';link.rel='noopener';link.textContent='Abrir panel ↗';const note=document.createElement('span');note.className='proposal-readonly';note.textContent=name==='IDEX'?'Duet · E0 + E1':'Klipper · Moonraker';footer.append(link,note);card.append(footer);
+  });
+  // Preserve the existing preview refresh and IDs while relocating each label.
+  function labels(){definitions.forEach(([id,name])=>{const card=document.getElementById(id),label=document.getElementById('ph-'+name);if(!card||!label||label.closest('.proposal-details'))return;const section=document.createElement('section');const anchor=card.querySelector('.proposal-footer');anchor.before(section);section.append(label);fold(card,section,'Etiqueta de este trabajo',name==='IDEX');});}
+  labels();const host=document.getElementById('printhost-grid');if(host)new MutationObserver(labels).observe(host,{childList:true});
+  function kind(card){const text=(card.querySelector('.badge,.idex-status')?.textContent||'').toUpperCase();return /SIN CONEX|ERROR|OFFLINE|DETENID|PAUSAD/.test(text)?'attention':/IMPRIM|PRINT|PROCESS|PRECAL|REANUD|HOMING/.test(text)?'running':/DESCANS|LISTA|COMPLET|CANCEL/.test(text)?'idle':'loading';}
+  let filter='all';
+  function stats(){const cards=definitions.map(([id])=>document.getElementById(id)).filter(Boolean),counts={running:0,idle:0,attention:0,loading:0};cards.forEach(card=>{const state=kind(card);counts[state]++;card.hidden=filter!=='all'&&state!==filter;});document.getElementById('proposal-empty').hidden=cards.some(card=>!card.hidden);document.getElementById('proposal-total').textContent=cards.length;document.getElementById('proposal-running').textContent=counts.running;document.getElementById('proposal-idle').textContent=counts.idle;document.getElementById('proposal-alerts').textContent=counts.attention;}
+  document.querySelectorAll('[data-filter]').forEach(button=>button.onclick=()=>{filter=button.dataset.filter;document.querySelectorAll('[data-filter]').forEach(item=>item.classList.toggle('active',item===button));stats();});stats();setInterval(stats,2000);
+})();

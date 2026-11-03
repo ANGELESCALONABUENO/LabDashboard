@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Escanear QR</title>
+  <style>
+    :root { --bg:#eef3f9; --card:#fff; --line:#d7deea; --ink:#182332; --muted:#5f6f82; --ok:#0f7a5d; --bad:#b42318; --accent:#0b63f3; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:"Segoe UI",Tahoma,sans-serif; color:var(--ink); background:linear-gradient(180deg,#edf2f8,#f8fbff); }
+    .wrap { max-width: 860px; margin: 24px auto; padding: 0 14px 24px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+    .head { padding:14px 16px; border-bottom:1px solid var(--line); font-weight:800; font-size:20px; }
+    .body { padding:14px; }
+    .meta { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:10px; }
+    .k { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+    .v { font-size:14px; font-weight:700; }
+    .video-wrap { border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#111; aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; }
+    video { width:100%; height:100%; object-fit:cover; }
+    .status { margin-top:10px; border:1px solid var(--line); border-radius:10px; padding:10px; background:#f7fbff; min-height:44px; }
+    .status.ok { border-color:#b8e2d6; background:#ecfaf4; color:var(--ok); }
+    .status.error { border-color:#f0c8c4; background:#fff1f0; color:var(--bad); }
+    .actions { margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; }
+    button,input { font:inherit; }
+    .btn { border:1px solid #c8d3e3; background:#fff; color:#1c2f44; border-radius:10px; padding:10px 12px; cursor:pointer; font-weight:700; }
+    .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .btn.good { background:#e7f7f1; border-color:#bfe3d6; color:#0f6d53; }
+    .manual { margin-top:12px; display:flex; gap:8px; }
+    .manual input { flex:1; border:1px solid var(--line); border-radius:10px; padding:10px; background:#fff; }
+    .hint { margin-top:8px; font-size:12px; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="head" id="page-title">Escanear QR</div>
+      <div class="body">
+        <div class="meta">
+          <div><div class="k" id="target-label">Impresora</div><div class="v" id="printer-id">--</div></div>
+          <div><div class="k">Retorno</div><div class="v" id="return-url">--</div></div>
+        </div>
+
+        <div class="video-wrap"><video id="scan-video" autoplay playsinline muted></video></div>
+        <div class="status" id="status">Iniciando...</div>
+
+        <div class="manual">
+          <input id="spool-input" type="number" min="1" max="99999" placeholder="Ingresa ID de carrete (ej. 77)" />
+          <button class="btn good" id="assign-manual">Asignar</button>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="retry-cam">Reiniciar camara</button>
+          <button class="btn" id="back-btn">Volver al dashboard</button>
+        </div>
+
+        <div class="hint" id="page-hint">Esta página usa HTTPS para permitir cámara. Al asignar, regresa automáticamente al dashboard.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const q = new URLSearchParams(location.search);
+    const materialMode = q.get('mode') === 'material';
+    const printerId = String(q.get('printer') || 'SE01').toUpperCase();
+    const returnTo = q.get('return') || 'http://192.0.2.10:8788/index.html';
+
+    const printerMap = {
+      SE01: '/proxy/se01',
+      SE02: '/proxy/se02',
+      MA01: '/proxy/ma01',
+      INTAMSYS: '/proxy/intamsys'
+    };
+
+    const base = printerMap[printerId] || printerMap.SE01;
+    const idexSide = printerId === 'IDEX-E0' ? 'left' : printerId === 'IDEX-E1' ? 'right' : null;
+    const statusEl = document.getElementById('status');
+    const video = document.getElementById('scan-video');
+    const spoolInput = document.getElementById('spool-input');
+    let scanStream = null;
+    let raf = null;
+
+    document.getElementById('printer-id').textContent = printerId === 'INTAMSYS' ? 'HT09' : printerId;
+    document.getElementById('return-url').textContent = returnTo;
+    if (materialMode) {
+      document.getElementById('page-title').textContent = 'Escanear QR de insumo';
+      document.getElementById('target-label').textContent = 'Destino';
+      document.getElementById('printer-id').textContent = 'Kiosko virtual';
+      spoolInput.type = 'text';
+      spoolInput.removeAttribute('min');
+      spoolInput.removeAttribute('max');
+      spoolInput.placeholder = 'Ingresa código de insumo';
+      document.getElementById('assign-manual').textContent = 'Agregar';
+      document.getElementById('page-hint').textContent = 'Esta página usa HTTPS para permitir cámara. Al detectar el QR, regresará al Kiosko virtual.';
+    }
+
+    function setStatus(msg, type='') {
+      statusEl.className = `status ${type}`.trim();
+      statusEl.textContent = msg;
+    }
+
+    function extractSpoolIdFromQr(text) {
+      const raw = String(text || '').trim();
+      if (!raw) return null;
+      let m = raw.match(/#\s*(\d{1,5})/);
+      if (m) return Number(m[1]);
+      m = raw.match(/(?:spool|carrete|id)\s*[:#-]?\s*(\d{1,5})/i);
+      if (m) return Number(m[1]);
+      const all = raw.match(/\d{1,5}/g) || [];
+      if (!all.length) return null;
+      return Number(all[0]);
+    }
+
+    async function assignSpool(spoolId) {
+      if (materialMode) {
+        const value = String(spoolId || '').trim();
+        if (!value) {
+          setStatus('Código de insumo inválido.', 'error');
+          return;
+        }
+        setStatus('QR detectado. Regresando al Kiosko virtual...', 'ok');
+        await stopScanner();
+        const target = new URL(returnTo, location.href);
+        target.searchParams.set('qr', value);
+        setTimeout(() => location.replace(target.toString()), 500);
+        return;
+      }
+      const id = Number(spoolId);
+      if (!Number.isFinite(id) || id <= 0) {
+        setStatus('ID de carrete invalido.', 'error');
+        return;
+      }
+      setStatus(`Asignando carrete #${id} a ${printerId}...`);
+      try {
+        const res = await fetch(idexSide ? '/proxy/idex/api/mounted-spools' : `${base}/server/spoolman/spool_id`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(idexSide ? {side:idexSide,spool_id:id} : { spool_id: id })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        setStatus(`Carrete #${id} asignado correctamente a ${printerId}. Regresando...`, 'ok');
+        await stopScanner();
+        setTimeout(() => location.replace(returnTo), 900);
+      } catch (_) {
+        setStatus('No se pudo asignar el carrete en esta impresora.', 'error');
+      }
+    }
+
+    async function stopScanner() {
+      if (raf) cancelAnimationFrame(raf);
+      raf = null;
+      if (scanStream) {
+        scanStream.getTracks().forEach(t => t.stop());
+      }
+      scanStream = null;
+      video.srcObject = null;
+    }
+
+    async function startScanner() {
+      await stopScanner();
+      setStatus('Solicitando acceso a camara...');
+
+      if (!('mediaDevices' in navigator) || !navigator.mediaDevices.getUserMedia) {
+        setStatus('Camara no compatible en este navegador.', 'error');
+        return;
+      }
+
+      try {
+        scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+        video.srcObject = scanStream;
+        await video.play();
+      } catch (_) {
+        setStatus('No se pudo abrir la camara. Revisa permisos del navegador.', 'error');
+        return;
+      }
+
+      if (!('BarcodeDetector' in window)) {
+        setStatus('Tu navegador no soporta deteccion QR. Usa ID manual.', 'error');
+        return;
+      }
+
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      setStatus('Escaneando QR...');
+
+      const loop = async () => {
+        if (!scanStream) return;
+        try {
+          const codes = await detector.detect(video);
+          if (codes && codes.length) {
+            const value = codes[0].rawValue || '';
+            const spoolId = materialMode ? value : extractSpoolIdFromQr(value);
+            if (spoolId) {
+              setStatus(materialMode ? 'QR de insumo detectado.' : `QR detectado: carrete #${spoolId}.`, 'ok');
+              await assignSpool(spoolId);
+              return;
+            }
+            setStatus('QR detectado pero no se encontro numero de carrete.', 'error');
+          }
+        } catch (_) {}
+        raf = requestAnimationFrame(loop);
+      };
+
+      raf = requestAnimationFrame(loop);
+    }
+
+    document.getElementById('assign-manual').addEventListener('click', async () => {
+      await assignSpool(spoolInput.value);
+    });
+
+    spoolInput.addEventListener('keydown', async (ev) => {
+      if (ev.key === 'Enter') await assignSpool(spoolInput.value);
+    });
+
+    document.getElementById('retry-cam').addEventListener('click', startScanner);
+    document.getElementById('back-btn').addEventListener('click', async () => {
+      await stopScanner();
+      location.replace(returnTo);
+    });
+
+    window.addEventListener('beforeunload', () => {
+      try { stopScanner(); } catch (_) {}
+    });
+
+    startScanner();
+  </script>
+</body>
+</html>
